@@ -1,0 +1,16 @@
+SHEET_CONTEXT: 200
+SYSTEM_HEIGHT: 120
+SPEC_CONTEXT: 42
+SPEC_BINS: 92
+
+AUGMENT: {
+'system_translation': 5,
+'sheet_scaling': [0.95, 1.05],
+'onset_translation': 1,
+'spec_padding': 0,
+'interpolate': -1,
+'synths': ['ElectricPiano'],
+'tempo_range': [1.00, 1.00]}
+
+TEST_SYNTH: 'grand-piano-YDP-20160804'
+TEST_TEMPO: 1.0

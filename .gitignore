@@ -1,0 +1,13 @@
+*.pyc
+/.idea
+*.npy
+*.npz
+*.jpg
+*.png
+*.ly
+*.mid
+*.midi
+*.pdf
+*~
+
+/test_data

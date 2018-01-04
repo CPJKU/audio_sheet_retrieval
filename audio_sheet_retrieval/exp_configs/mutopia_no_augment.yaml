@@ -1,0 +1,11 @@
+SHEET_CONTEXT: 200
+SYSTEM_HEIGHT: 120
+SPEC_CONTEXT: 42
+SPEC_BINS: 92
+
+AUGMENT: {
+'system_translation': 0,
+'sheet_scaling': [1.00, 1.00],
+'onset_translation': 0,
+'spec_padding': 0,
+'interpolate': -1}
