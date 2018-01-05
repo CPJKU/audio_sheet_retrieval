@@ -293,11 +293,6 @@ def train(iter_funcs, dataset, train_batch_iter, valid_batch_iter, fit_cca):
             lv1_cca = V1_va
             lv2_cca = V2_va
 
-        # # TODO: remove this
-        # if lv1_cca.shape[0] == 5000:
-        #     lv2_cca = lv2_cca[0::5]
-        #     lv1_cca = lv1_cca[0::5]
-
         # evaluate retrieval on validation set
         mean_rank_va, med_rank_va, dist_va, hit_rates, map_va = eval_retrieval(lv1_cca, lv2_cca)
         mean_rank_va = 1.0 - float(hit_rates[10]) / 1000
