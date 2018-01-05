@@ -29,7 +29,7 @@ def load_piece_list(piece_names, aug_config=NO_AUGMENT):
         piece_name = piece_names[ip]
 
         try:
-            image, specs, o2c_maps = prepare_piece_data(DATA_ROOT_MSMD, piece_name,
+            image, specs, o2c_maps = prepare_piece_data(DATA_ROOT_MSMD_AUG, piece_name,
                                                         aug_config=aug_config, require_audio=False)
         except:
             print("Problems with loading piece %s" % piece_name)
@@ -110,7 +110,7 @@ if __name__ == "__main__":
         return batch_iterator
 
     data = load_audio_score_retrieval(split_file="/home/matthias/cp/src/sheet_manager/sheet_manager/splits/bach_split.yaml",
-                                      config_file="/home/matthias/cp/src/audio_sheet_retrieval/audio_sheet_retrieval/exp_configs/mutopia_full_augment.yaml",
+                                      config_file="/home/matthias/cp/src/audio_sheet_retrieval/audio_sheet_retrieval/exp_configs/mutopia_full_aug.yaml",
                                       test_only=False)
 
     bi = train_batch_iterator(batch_size=5)

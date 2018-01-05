@@ -384,7 +384,7 @@ if __name__ == '__main__':
 
     # initialize sheet music data base
     if args.init_db:
-        a2s_srv.initialize_sheet_db(pieces=te_pieces, keep_snippets=True)
+        a2s_srv.initialize_sheet_db(pieces=te_pieces, keep_snippets=False)
         a2s_srv.save_sheet_db_file("sheet_db_file.pkl")
 
     # load sheet music data base
