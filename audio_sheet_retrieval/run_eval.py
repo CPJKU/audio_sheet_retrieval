@@ -2,6 +2,7 @@
 from __future__ import print_function
 
 import os
+import yaml
 try:
     import cPickle as pickle
 except ImportError:
@@ -40,10 +41,10 @@ if __name__ == '__main__':
     parser.add_argument('--V2_to_V1', help='query direction.', action='store_true')
     parser.add_argument('--estimate_UV', help='load re-estimated U and V.', action='store_true')
     parser.add_argument('--max_dim', help='maximum dimension of retrieval space.', type=int, default=None)
-    parser.add_argument('--dump_results', help='dump results of current run to file.', action='store_true')
     parser.add_argument('--seed', help='query direction.', type=int, default=23)
     parser.add_argument('--train_split', help='path to train split file.', type=str, default=None)
     parser.add_argument('--config', help='path to experiment config file.', type=str, default=None)
+    parser.add_argument('--dump_results', help='dump results of current run to file.', action='store_true')
     args = parser.parse_args()
 
     # select model
@@ -121,7 +122,7 @@ if __name__ == '__main__':
 
         plt.figure("Distance Matrix")
         plt.clf()
-        plt.imshow(dists, interpolation='nearest', cmap=cmaps['magma'])
+        plt.imshow(dists, interpolation='nearest', cmap="magma")
         plt.colorbar()
         plt.axis('off')
 
@@ -136,7 +137,7 @@ if __name__ == '__main__':
             plt.clf()
 
             plt.subplot(2, 5, 1)
-            plt.imshow(X2[i, 0], cmap=cmaps['viridis'], origin="lower")
+            plt.imshow(X2[i, 0], cmap='viridis', origin="lower")
             # plt.title("Query", fontsize=22)
             plt.axis('off')
 
@@ -190,12 +191,20 @@ if __name__ == '__main__':
     print("Max Dist   : %.5f " % np.max(dists))
     print("Med Dist   : %.5f " % np.median(dists))
 
-    # dump results to file
+    # dump results to yaml file
     if args.dump_results:
-        results = {"map": map, 'recall_at_k': recall_at_k, 'med_rank': med_rank_te}
 
-        ret_dir = "V2_to_V1" if args.V2_to_V1 else "V1_to_V2"
-        res_file = os.path.join(out_path, "test_set_eval_%d_%s.pkl" % (args.seed, ret_dir))
+        # required for yaml export
+        map = float(map)
+        med_rank_te = float(med_rank_te)
+        keys = ["%d" % k for k in recall_at_k.keys()]
+        recall_at_k = dict(zip(keys, recall_at_k.values()))
+
+        results = {"map": map, 'med_rank': med_rank_te, 'recall_at_k': recall_at_k}
+
+        ret_dir = "A2S" if args.V2_to_V1 else "S2A"
+        res_file = dump_file.replace("params_", "eval_").replace(".pkl", "_%s.yaml")
+        res_file = res_file % ret_dir
+
         with open(res_file, 'wb') as fp:
-            pickle.dump(results, fp)
-
+            yaml.dump(results, fp, default_flow_style=False)

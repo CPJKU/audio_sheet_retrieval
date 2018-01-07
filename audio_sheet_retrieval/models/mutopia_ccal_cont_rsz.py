@@ -22,15 +22,15 @@ from audio_sheet_retrieval.utils.mutopia_data import SPEC_CONTEXT
 
 
 INI_LEARNING_RATE = 0.002
-REFINEMENT_STEPS = 10
+REFINEMENT_STEPS = 5
 LR_MULTIPLIER = 0.5
 BATCH_SIZE = 100
 MOMENTUM = 0.9
 MAX_EPOCHS = 1000
-PATIENCE = 15
+PATIENCE = 30
 X_TENSOR_TYPE = T.tensor4
 Y_TENSOR_TYPE = T.ivector
-INPUT_SHAPE_1 = [1, 120, 200]
+INPUT_SHAPE_1 = [1, 160, 200]
 INPUT_SHAPE_2 = [1, 92, SPEC_CONTEXT]
 
 DIM_LATENT = 32
@@ -66,14 +66,14 @@ def get_build_model(weight_tno, alpha, dim_latent, use_ccal):
         """ Compile net architecture """
 
         # --- input layers ---
-        l_view1 = lasagne.layers.InputLayer(shape=(None, INPUT_SHAPE_1[0], INPUT_SHAPE_1[1], INPUT_SHAPE_1[2]))
+        l_view1 = lasagne.layers.InputLayer(shape=(None, INPUT_SHAPE_1[0], INPUT_SHAPE_1[1] // 2, INPUT_SHAPE_1[2] // 2))
         l_view2 = lasagne.layers.InputLayer(shape=(None, INPUT_SHAPE_2[0], INPUT_SHAPE_2[1], INPUT_SHAPE_2[2]))
 
         net1 = l_view1
         net2 = l_view2
 
         # --- feed forward part view 1 ---
-        num_filters_1 = 12
+        num_filters_1 = 24
 
         net1 = conv_bn(net1, num_filters_1, nonlin)
         net1 = conv_bn(net1, num_filters_1, nonlin)
@@ -177,13 +177,13 @@ def prepare(x, y=None):
     x = x.astype(np.float32)
     x /= 255
 
-    # # resize sheet image
-    # sheet_shape = [x.shape[2] // 2, x.shape[3] // 2]
-    # new_shape = [x.shape[0], x.shape[1], ] + sheet_shape
-    # x_new = np.zeros(new_shape, np.float32)
-    # for i in range(len(x)):
-    #     x_new[i, 0] = cv2.resize(x[i, 0], (sheet_shape[1], sheet_shape[0]))
-    # x = x_new
+    # resize sheet image
+    sheet_shape = [x.shape[2] // 2, x.shape[3] // 2]
+    new_shape = [x.shape[0], x.shape[1], ] + sheet_shape
+    x_new = np.zeros(new_shape, np.float32)
+    for i in range(len(x)):
+        x_new[i, 0] = cv2.resize(x[i, 0], (sheet_shape[1], sheet_shape[0]))
+    x = x_new
 
     if y is None:
         return x

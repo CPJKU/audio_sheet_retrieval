@@ -60,6 +60,8 @@ if __name__ == '__main__':
     # reset model parameter file
     model.EXP_NAME += "_est_UV"
     out_path = os.path.join(os.path.join(EXP_ROOT), model.EXP_NAME)
+    if not os.path.exists(out_path):
+        os.mkdir(out_path)
     dump_file = os.path.join(out_path, dump_file_name)
 
     # select data
@@ -85,6 +87,9 @@ if __name__ == '__main__':
                                         outputs=lasagne.layers.get_output(l_v1_cca, deterministic=True))
     compute_v2_latent = theano.function(inputs=input_2,
                                         outputs=lasagne.layers.get_output(l_v2_cca, deterministic=True))
+
+    # check if there are enough train samples
+    # args.n_train = args.n_train if data['train'].shape[0] > args.n_train else data['train'].shape[0]
 
     print("Computing train output...")
     X1, X2 = data['train'][0:args.n_train]

@@ -101,7 +101,7 @@ def load_audio_score_retrieval(split_file, config_file=None, test_only=False):
 if __name__ == "__main__":
     """ main """
     import matplotlib.pyplot as plt
-    from audio_sheet_retrieval.models.mutopia_ccal_cont import prepare
+    from audio_sheet_retrieval.models.mutopia_ccal_cont_rsz import prepare
 
     def train_batch_iterator(batch_size=1):
         """ Compile batch iterator """
@@ -110,7 +110,7 @@ if __name__ == "__main__":
         return batch_iterator
 
     data = load_audio_score_retrieval(split_file="/home/matthias/cp/src/sheet_manager/sheet_manager/splits/bach_split.yaml",
-                                      config_file="/home/matthias/cp/src/audio_sheet_retrieval/audio_sheet_retrieval/exp_configs/mutopia_full_aug.yaml",
+                                      config_file="/home/matthias/cp/src/audio_sheet_retrieval/audio_sheet_retrieval/exp_configs/mutopia_full_augment.yaml",
                                       test_only=False)
 
     bi = train_batch_iterator(batch_size=5)
@@ -123,6 +123,8 @@ if __name__ == "__main__":
     for epoch in xrange(1000):
         start = time.time()
         for i, (sheet, spec) in enumerate(iterator):
+
+            continue
 
             plt.figure()
             plt.clf()

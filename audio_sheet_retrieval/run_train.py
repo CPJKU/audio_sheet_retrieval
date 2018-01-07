@@ -15,9 +15,6 @@ from utils import mutopia_data
 from utils.plotting import BColors
 col = BColors()
 
-REFINEMENT_STEPS = 10
-LR_MULTIPLIER = 0.5
-
 
 def select_model(model_path):
     """ select model and train function """
@@ -89,7 +86,7 @@ if __name__ == '__main__':
         model.INI_LEARNING_RATE = 0.0
         model.ALPHA = 1.0
         model.PATIENCE = 3
-        REFINEMENT_STEPS = 0
+        model.REFINEMENT_STEPS = 0
 
     # set model dump file
     out_path = os.path.join(os.path.join(EXP_ROOT), model.EXP_NAME)
@@ -131,4 +128,4 @@ if __name__ == '__main__':
                           compute_updates=model.compute_updates, l_2=model.L2, l_1=model.L1,
                           exp_name=model.EXP_NAME, out_path=out_path, dump_file=dump_file, log_file=log_file,
                           fit_cca=fit_cca, pretrain_epochs=pretrain_epochs,
-                          refinement_steps=REFINEMENT_STEPS, lr_multiplier=LR_MULTIPLIER)
+                          refinement_steps=model.REFINEMENT_STEPS, lr_multiplier=model.LR_MULTIPLIER)

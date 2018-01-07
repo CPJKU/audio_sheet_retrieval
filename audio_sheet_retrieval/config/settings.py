@@ -18,3 +18,5 @@ if hostname in ["rechenknecht0.cp.jku.at", "rechenknecht1.cp.jku.at"]:
 elif hostname == "mdhp":
     EXP_ROOT = "/home/matthias/experiments/audio_sheet_retrieval/"
     DATA_ROOT_MSMD = '/media/matthias/Data/Data/msmd/'
+    # TODO: thats a bad hack
+    DATA_ROOT_MSMD_AUG = '/media/matthias/Data/Data/msmd/'

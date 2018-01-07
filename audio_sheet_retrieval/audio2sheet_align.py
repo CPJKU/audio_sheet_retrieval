@@ -2,6 +2,7 @@
 import pickle
 import argparse
 import os
+import yaml
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,13 +11,13 @@ import seaborn as sns
 from utils.mutopia_data import NO_AUGMENT, load_split
 from retrieval_wrapper import RetrievalWrapper
 from config.settings import EXP_ROOT
-from config.settings import DATA_ROOT_MSMD as ROOT_DIR
+from config.settings import DATA_ROOT_MSMD_AUG as ROOT_DIR
 from utils.alignment import compute_alignment, estimate_alignment_error
 
 from run_train import compile_tag
 
 from sheet_manager.midi_parser import processor
-from sheet_manager.data_loading.data_pools import prepare_piece_data, AudioScoreRetrievalPool
+from utils.data_pools import prepare_piece_data, AudioScoreRetrievalPool
 
 sns.set_style('ticks')
 
@@ -37,6 +38,13 @@ if __name__ == '__main__':
     parser.add_argument('--train_split', help='path to train split file.', type=str, default=None)
     parser.add_argument('--config', help='path to experiment config file.', type=str, default=None)
     args = parser.parse_args()
+
+    # load experiment config
+    with open(args.config, 'rb') as hdl:
+        config = yaml.load(hdl)
+    test_augment = NO_AUGMENT.copy()
+    test_augment['synths'] = [config["TEST_SYNTH"]]
+    test_augment['tempo_range'] = [config["TEST_TEMPO"], config["TEST_TEMPO"]]
 
     # tag parameter file
     tag = compile_tag(args.train_split, args.config)
@@ -76,11 +84,12 @@ if __name__ == '__main__':
     for piece in pieces:
 
         print "\nTarget Piece: %s" % piece
-        piece_image, piece_specs, piece_o2c_maps = prepare_piece_data(ROOT_DIR, piece)
+        piece_image, piece_specs, piece_o2c_maps = prepare_piece_data(ROOT_DIR, piece, aug_config=test_augment,
+                                                                      require_audio=False)
 
         # initialize data pool with piece
         piece_pool = AudioScoreRetrievalPool([piece_image], [piece_specs], [piece_o2c_maps],
-                                             data_augmentation=NO_AUGMENT, shuffle=False)
+                                             data_augmentation=test_augment, shuffle=False)
 
         # compute spectrogram from file
         if args.real_audio:
@@ -218,7 +227,8 @@ if __name__ == '__main__':
             plt.show(block=True)
 
     # dump results for further analysis
-    res_file = os.path.join("res_a2s_align", "alignment_res_" + model.EXP_NAME + "_" + args.align_by + ".pkl")
+    res_file = dump_file.replace("params_", "alignment_res_").replace(".pkl", "_%s.pkl")
+    res_file %= args.align_by
     with open(res_file, "wb") as fp:
         pickle.dump(piece_pxl_errors, fp)
 

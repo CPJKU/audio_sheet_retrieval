@@ -16,7 +16,7 @@ from sheet_manager.alignments import align_score_to_performance
 
 
 SHEET_CONTEXT = 200
-SYSTEM_HEIGHT = 120
+SYSTEM_HEIGHT = 160
 SPEC_CONTEXT = 42
 SPEC_BINS = 92
 
@@ -309,7 +309,7 @@ def stack_images(images, mungos_per_page, mdict):
     return stacked_image, stacked_page_mungos, mdict
 
 
-def unwrap_sheet_image(image, system_mungos, mdict, window_top=80, window_bottom=80):
+def unwrap_sheet_image(image, system_mungos, mdict, window_top=100, window_bottom=100):
     """
     Unwrap all systems of sheet image to a single "long row"
     """
