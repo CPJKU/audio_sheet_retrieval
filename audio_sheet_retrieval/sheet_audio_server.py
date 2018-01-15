@@ -7,12 +7,12 @@ import argparse
 import numpy as np
 
 from config.settings import EXP_ROOT
-from config.settings import DATA_ROOT_MSMD_AUG as ROOT_DIR
+from config.settings import DATA_ROOT_MSMD as ROOT_DIR
 from utils.mutopia_data import load_split
 from run_train import compile_tag, select_model
 from audio_sheet_server import AudioSheetServer
 from utils.plotting import BColors
-from utils.data_pools import prepare_piece_data, AudioScoreRetrievalPool, NO_AUGMENT
+from utils.data_pools import prepare_piece_data, NO_AUGMENT
 
 # init color printer
 col = BColors()

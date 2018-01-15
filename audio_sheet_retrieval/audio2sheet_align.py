@@ -11,7 +11,7 @@ import seaborn as sns
 from utils.mutopia_data import NO_AUGMENT, load_split
 from retrieval_wrapper import RetrievalWrapper
 from config.settings import EXP_ROOT
-from config.settings import DATA_ROOT_MSMD_AUG as ROOT_DIR
+from config.settings import DATA_ROOT_MSMD as ROOT_DIR
 from utils.alignment import compute_alignment, estimate_alignment_error
 
 from run_train import compile_tag

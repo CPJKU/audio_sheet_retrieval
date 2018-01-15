@@ -2,25 +2,15 @@
 from __future__ import print_function
 
 import os
-import sys
 import yaml
-import time
-import pickle
 import argparse
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 import seaborn as sns
 from scipy.spatial.distance import cdist
 
 from config.settings import EXP_ROOT
-from config.settings import DATA_ROOT_MSMD_AUG as ROOT_DIR
-from utils.mutopia_data import load_split
 from utils.plotting import BColors
 from run_train import compile_tag, select_model
-from retrieval_wrapper import RetrievalWrapper
-from utils.data_pools import NO_AUGMENT
-from utils.data_pools import SPEC_CONTEXT, SPEC_BINS, SHEET_CONTEXT, SYSTEM_HEIGHT
 from audio_sheet_server import AudioSheetServer
 from umc_a2s_server import load_umc_sheets
 

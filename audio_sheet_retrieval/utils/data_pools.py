@@ -1,8 +1,6 @@
 
 from __future__ import print_function
 
-import os
-import glob
 import numpy as np
 from scipy.interpolate import interp1d
 

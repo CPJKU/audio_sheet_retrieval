@@ -14,7 +14,7 @@ import seaborn as sns
 from scipy.spatial.distance import cdist
 
 from config.settings import EXP_ROOT
-from config.settings import DATA_ROOT_MSMD_AUG as ROOT_DIR
+from config.settings import DATA_ROOT_MSMD as ROOT_DIR
 from utils.mutopia_data import load_split
 from utils.data_pools import prepare_piece_data, AudioScoreRetrievalPool
 from utils.plotting import BColors

@@ -5,7 +5,7 @@ import sys
 import yaml
 from tqdm import tqdm
 
-from audio_sheet_retrieval.config.settings import DATA_ROOT_MSMD, DATA_ROOT_MSMD_AUG
+from audio_sheet_retrieval.config.settings import DATA_ROOT_MSMD
 from data_pools import prepare_piece_data, AudioScoreRetrievalPool, AUGMENT, NO_AUGMENT
 from data_pools import SPEC_CONTEXT, SHEET_CONTEXT, SYSTEM_HEIGHT
 
@@ -29,7 +29,7 @@ def load_piece_list(piece_names, aug_config=NO_AUGMENT):
         piece_name = piece_names[ip]
 
         try:
-            image, specs, o2c_maps = prepare_piece_data(DATA_ROOT_MSMD_AUG, piece_name,
+            image, specs, o2c_maps = prepare_piece_data(DATA_ROOT_MSMD, piece_name,
                                                         aug_config=aug_config, require_audio=False)
         except:
             print("Problems with loading piece %s" % piece_name)
