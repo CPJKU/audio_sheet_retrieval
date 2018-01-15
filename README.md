@@ -4,35 +4,47 @@ End-to-End Audio – Sheet Music Correspondence Learning and Retrieval
 This repository contains all experimental code for reproducing the results
 reported in our manuscript:
 
->End-to-End Audio – Sheet Music Correspondence Learning and Retrieval.<br>
-=======
-*End-to-End Audio – Sheet Music Correspondence Learning and Retrieval.*<br>
-Anonymous Authors.<br>
-Under review for TISMIR Volume 1, 2018
+>Anonymous Authors.<br>
+"End-to-End Audio – Sheet Music Correspondence Learning and Retrieval".<br>
+Under review for *Transactions of the International Society for Music Information Retrieval*, 2018
 
-The retrieval methodology employed is this work is based on
-the *CCA Projection Layer* especially designed for the task
-of cross-modality retrieval.
-An implementation of this layer can be found in this sub folder of this repository:
-*audio_sheet_retrieval/models/lasagne_extensions/layers/cca.py*.
-And a detailed description is provided in:
+The paper above is an invited extension of our previous work presented in:
+
+>Dorfer M., Arzt A., and G. Widmer.<br>
+"Learning audio-sheet music correspondences for score identification and offline alignment".<br>
+In *Proceedings of the International Society for Music Information Retrieval Conference (ISMIR)*, 2017.
+
+The retrieval methodology employed in both works is based on
+the *CCA Projection Layer* described in:
 
 >End-to-End Cross-Modality Retrieval with CCA Projections and Pairwise Ranking Loss.<br>
-=======
-*End-to-End Cross-Modality Retrieval with CCA Projections and Pairwise Ranking Loss.*<br>
-M Dorfer, J Schlüter, A Vall, F Korzeniowski, G Widmer.<br>
-arXiv preprint arXiv:1705.06979
+Dorfer M., Schlüter J., Vall A., Korzeniowski F., and Widmer G.<br>
+*arXiv preprint arXiv:1705.06979*, 2017
 
+An implementation of the layer is also contained in this repository:<br>
+*audio_sheet_retrieval/models/lasagne_extensions/layers/cca.py*.
 
-Requirements
-------------
-- python-opencv
-- pyyaml
-- numpy
-- matplotlib
-- theano
-- lasagne
-- tqdm
+Setup and Requirements
+----------------------
+To see a list of required python packages see the *requirements.txt*
+or just install them all at once using pip.
+```
+pip install requirements.txt
+```
+
+To install the *audio_sheet_retrieval* package in develop mode run
+```
+python setup.py develop --user
+```
+in the root folder of the package.
+
+The MSMD Data Set
+-----------------
+Almost all of our experiments are based on the proposed Mulitmodal Sheet Music Data Set (MSMD).
+For a detailed description of the MSMD data and how to get it please visit (TODO).
+The only set of experiments not covered in this repository are the ones carried out
+on commercially licenced sheet music.
+However, training the models is performed exclusively on MSMD.
 
 Preparation
 -----------
@@ -41,16 +53,17 @@ In particular, you have to specify two paths in the file *config/settings.py*:
 ```
 # path where model folder gets created and parameters and results get dumped
 EXP_ROOT = "/home/matthias/experiments/audio_sheet_retrieval/"
-# path where to find the data (In our case the root directory of the msmd dataset)
+# path where to find the data (In our case the root directory of the MSMD dataset)
 DATA_ROOT_MSMD = '/media/matthias/Data/msmd/'
 ```
+Once this is done we can start training and evaluating our retrieval models.
 
 Model Training
 --------------
 
-The python script *run_train.py* allows to train all our retrieval models.
-You can either train individual models our train all models of one split
-at once using the additional shell script *train_models.sh*:
+The python script *run_train.py* allows you to train all individual retrieval models.
+Alternatively, if you would like to train all models of one split
+at once you can use the additional shell script *train_models.sh*:
 
 ```
 ./train_models.sh cuda0 models/mutopia_ccal_cont.py <path-to-sheet-manger>/sheet_manager/sheet_manager/splits/all_split.yaml
@@ -66,23 +79,21 @@ but train only the best performing model you can do this with the following comm
 python run_train.py --model models/mutopia_ccal_cont.py --data mutopia --train_split <path-to-sheet-manger>/sheet_manager/sheet_manager/splits/all_split.yaml --config exp_configs/mutopia_full_aug.yaml
 ```
 This command trains a model on the all-split (containing pieces of all different composers)
-in the full data augmentation setting.<br>
-Once this is done there is one final step missing.
+in the full data augmentation setting (sheet music and audio augmentation).<br>
+Once this is done there is a final step missing.
 As the CCA-Projection-Layer is based on the internal statistics of the training batches
 we fine tune it with a very large batch (here 25000 samples) to push the model
 to its best performance:
 ```
 python refine_cca.py --n_train 25000 --model models/mutopia_ccal_cont.py --data mutopia --train_split <path-to-sheet-manger>/sheet_manager/sheet_manager/splits/all_split.yaml --config exp_configs/mutopia_full_aug.yaml
 ```
-Once this is done you should end up with fairly well performing
-mutimodal audio-sheet music encoders.
+After this step you should end up with fairly well performing mutimodal audio-sheet music encoders.
 
 
 Evaluation (Snippet / Excerpt Retrieval)
 ----------------------------------------
-The code structure of the evaluation part of the repository is in line with the training
-function.
-So in order to evaluate all models of a certain split you can either call:
+The code structure of the evaluation part of the repository is in line with the training functionality.
+To evaluate all models of a certain split at once simply call:
 ```
 ./eval_models.sh cuda0 models/mutopia_ccal_cont_rsz.py <path-to-sheet-manger>/sheet_manager/sheet_manager/splits/all_split.yaml
 # $1 ... the device to evaluate on
@@ -91,7 +102,7 @@ So in order to evaluate all models of a certain split you can either call:
 ```
 All results will be printed to your command line output
 and in addition dumped to the model folder in your <EXP_ROOT> directory (if the flag *--dump_results* is active).<br>
-Again, you can also evaluate a model individually:
+Again, you can also evaluate the models individually:
 ```
 python run_eval.py --dump_results --model models/mutopia_ccal_cont.py --data mutopia --train_split <path-to-sheet-manger>/sheet_manager/sheet_manager/splits/all_split.yaml --config exp_configs/mutopia_full_aug.yaml --estimate_UV --n_test 2000
 ```
@@ -100,21 +111,22 @@ By adding the flag
 # (audio-query - to - sheet music)
 --V2_to_V1
 ```
-you can change the retrieval direction to audio-query - to - sheet music.
-If the flag is not present we retrieve audio (spectrogram excerpts) from image queries.
+you can change the retrieval direction to *audio-query - to - sheet music*.
+If the flag is not present we retrieve audio (spectrogram excerpts) from image queries
+by default.
 
 
 Evaluation (Score / Performance) Identification
 -----------------------------------------------
-To reporduce our experiments on score and performance identification you can
-run the following sheel script.
+To reproduce our experiments on score and performance identification you can
+run the following shell script.
 ```
 ./eval_piece_retrieval.sh cuda0 models/mutopia_ccal_cont_rsz.py <path-to-sheet-manger>/sheet_manager/sheet_manager/splits/all_split.yaml
 # $1 ... the device to evaluate on
 # $2 ... the model to train
 # $3 ... the train split (data) to use for evaluation
 ```
-Again, you can also run these experiments individually by calling:
+As above, you can also run these experiments individually by calling:
 ```
 python audio_sheet_server.py --model models/mutopia_ccal_cont.py --full_eval --init_sheet_db --estimate_UV --dump_results --train_split <path-to-sheet-manger>/sheet_manager/sheet_manager/splits/all_split.yaml --config --config exp_configs/mutopia_full_aug.yaml
 ```
