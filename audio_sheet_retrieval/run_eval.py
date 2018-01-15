@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# author: matthias dorfer
 
 from __future__ import print_function
 
@@ -33,11 +35,11 @@ if __name__ == '__main__':
     """ main """
 
     # add argument parser
-    parser = argparse.ArgumentParser(description='Train model.')
-    parser.add_argument('--model', help='model parameters for evaluation.', default="flickr30")
-    parser.add_argument('--data', help='select evaluation data.', type=str, default="flickr30")
+    parser = argparse.ArgumentParser(description='Evaluate cross-modality retrieval model.')
+    parser.add_argument('--model', help='select model to evaluate.')
+    parser.add_argument('--data', help='select evaluation data.', type=str)
     parser.add_argument('--show', help='show evaluation plots.', action='store_true')
-    parser.add_argument('--n_test', help='number of test samples used for projection.', type=int, default=None)
+    parser.add_argument('--n_test', help='number of test samples used.', type=int, default=None)
     parser.add_argument('--V2_to_V1', help='query direction.', action='store_true')
     parser.add_argument('--estimate_UV', help='load re-estimated U and V.', action='store_true')
     parser.add_argument('--max_dim', help='maximum dimension of retrieval space.', type=int, default=None)

@@ -322,7 +322,6 @@ class LearnedCCALayer(MergeLayer):
 
         return output
 
-
     def get_loss(self):
         return self.loss
 

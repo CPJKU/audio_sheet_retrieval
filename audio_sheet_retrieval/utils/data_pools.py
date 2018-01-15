@@ -414,7 +414,7 @@ def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT, requir
             continue
 
         # load current performance
-        performance = piece.load_performance(performance_key, require_audio)
+        performance = piece.load_performance(performance_key, require_audio=require_audio)
 
         # running the alignment procedure
         alignment = align_score_to_performance(score, performance)

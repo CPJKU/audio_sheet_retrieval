@@ -35,7 +35,6 @@ def select_data(data_name, split_file, config_file, seed=23, test_only=False):
     if str(data_name) == "mutopia":
         data = mutopia_data.load_audio_score_retrieval(split_file=split_file, config_file=config_file,
                                                        test_only=test_only)
-
     else:
         pass
 
@@ -43,6 +42,7 @@ def select_data(data_name, split_file, config_file, seed=23, test_only=False):
 
 
 def compile_tag(train_split, config):
+    """ compile model tag fom split and config file paths """
     tag = os.path.splitext(os.path.basename(train_split))[0]
     tag += "_" + os.path.splitext(os.path.basename(config))[0]
     return tag
@@ -52,13 +52,12 @@ if __name__ == '__main__':
     """ main """
 
     # add argument parser
-    parser = argparse.ArgumentParser(description='Train multi-modality model.')
+    parser = argparse.ArgumentParser(description='Train cross-modality retrieval model.')
     parser.add_argument('--model', help='select model to train.')
     parser.add_argument('--data', help='select data for training.')
-    parser.add_argument('--resume', help='resume on pretrained model.', action='store_true')
+    parser.add_argument('--resume', help='resume on pre-trained model.', action='store_true')
     parser.add_argument('--seed', help='query direction.', type=int, default=23)
     parser.add_argument('--no_dump', help='do not dump model file.', action='store_true')
-    parser.add_argument('--estimate_UV', help='re-estimate U and V on very large batches.', type=int, default=None)
     parser.add_argument('--show_architecture', help='print model architecture.', action='store_true')
     parser.add_argument('--train_split', help='path to train split file.', type=str, default=None)
     parser.add_argument('--config', help='path to experiment config file.', type=str, default=None)
@@ -81,13 +80,6 @@ if __name__ == '__main__':
     tag = compile_tag(args.train_split, args.config)
     print("Experimental Tag:", tag)
 
-    if args.estimate_UV is not None:
-        model.BATCH_SIZE = args.estimate_UV
-        model.INI_LEARNING_RATE = 0.0
-        model.ALPHA = 1.0
-        model.PATIENCE = 3
-        model.REFINEMENT_STEPS = 0
-
     # set model dump file
     out_path = os.path.join(os.path.join(EXP_ROOT), model.EXP_NAME)
     dump_file = 'params.pkl' if tag is None else 'params_%s.pkl' % tag
@@ -98,21 +90,12 @@ if __name__ == '__main__':
     print("\nBuilding network...")
     layers = model.build_model(show_model=args.show_architecture)
 
-    if args.resume or args.estimate_UV is not None:
+    if args.resume:
         print("\n")
         print("Loading model parameters from:", dump_file)
         with open(dump_file, 'r') as fp:
             params = pickle.load(fp)
             lasagne.layers.set_all_param_values(layers, params)
-
-    # reset model dump paths
-    if args.estimate_UV is not None:
-        model.EXP_NAME += "_est_UV"
-        out_path = os.path.join(os.path.join(EXP_ROOT), model.EXP_NAME)
-        dump_file = 'params.pkl' if tag is None else 'params_%s.pkl' % tag
-        dump_file = os.path.join(out_path, dump_file)
-        log_file = 'results.pkl' if tag is None else 'results_%s.pkl' % tag
-        log_file = os.path.join(out_path, log_file)
 
     # do not dump model
     dump_file = None if args.no_dump else dump_file

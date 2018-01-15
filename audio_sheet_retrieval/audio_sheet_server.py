@@ -213,21 +213,22 @@ class AudioSheetServer(object):
     def detect_score(self, spectrogram, top_k=1, n_candidates=1, verbose=False):
         """ detect piece from audio """
 
-        all_piece_ids = np.zeros(0, dtype=np.int)
-
         n_samples = 100
         start_indices = np.linspace(start=0, stop=spectrogram.shape[1]-self.spec_shape[1], num=n_samples)
         start_indices = start_indices.astype(np.int)
 
-        for idx in start_indices:
-            spec_excerpt = spectrogram[:, idx:idx+self.spec_shape[1]]
-            spec_excerpt = spec_excerpt[np.newaxis, np.newaxis, :, :]
+        # collect spectrogram excerpts
+        spec_excerpts = np.zeros((len(start_indices), 1, self.spec_shape[0], self.spec_shape[1]), dtype=np.float32)
+        for i, idx in enumerate(start_indices):
+            spec_excerpts[i, 0] = spectrogram[:, idx:idx+self.spec_shape[1]]
 
-            # compute spec code
-            spec_code = self.embed_network.compute_view_2(spec_excerpt)
+        # compute spec codes
+        spec_codes = self.embed_network.compute_view_2(spec_excerpts)
 
-            # retrive pice ids for current spectrogram
-            piece_ids, snippet_ids = self._retrieve_sheet_snippet_ids(spec_code, n_candidates=n_candidates)
+        # retrieve piece ids for encoded spectrogram excerpts
+        all_piece_ids = np.zeros(0, dtype=np.int)
+        for i in range(len(spec_codes)):
+            piece_ids, snippet_ids = self._retrieve_sheet_snippet_ids(spec_codes[i:i+1], n_candidates=n_candidates)
 
             # keep piece ids
             all_piece_ids = np.concatenate((all_piece_ids, piece_ids))
@@ -264,15 +265,17 @@ class AudioSheetServer(object):
         r0 = sheet.shape[0] // 2 - self.sheet_shape[0] // 2
         r1 = r0 + self.sheet_shape[0]
 
-        for idx in start_indices:
-            sheet_snippet = sheet[r0:r1, idx:idx+self.sheet_shape[1]]
-            sheet_snippet = sheet_snippet[np.newaxis, np.newaxis, :, :]
+        # collect sheet snippets
+        sheet_snippets = np.zeros((len(start_indices), 1, self.sheet_shape[0], self.sheet_shape[1]), dtype=np.float32)
+        for i, idx in enumerate(start_indices):
+            sheet_snippets[i, 0] = sheet[r0:r1, idx:idx+self.sheet_shape[1]]
 
-            # compute spec code
-            sheet_code = self.embed_network.compute_view_1(sheet_snippet)
+        # compute sheet codes
+        sheet_codes = self.embed_network.compute_view_1(sheet_snippets)
 
-            # retrive pice ids for current spectrogram
-            perform_ids, excerpt_ids = self._retrieve_perform_excerpt_ids(sheet_code, n_candidates=n_candidates)
+        # retrieve piece ids for current spectrogram
+        for i in range(len(sheet_codes)):
+            perform_ids, excerpt_ids = self._retrieve_perform_excerpt_ids(sheet_codes[i:i+1], n_candidates=n_candidates)
 
             # keep piece ids
             all_perform_ids = np.concatenate((all_perform_ids, perform_ids))
@@ -325,21 +328,24 @@ class AudioSheetServer(object):
                                                  data_augmentation=NO_AUGMENT, shuffle=False)
 
             # embed sheet snippets of piece
-            for j in xrange(piece_pool.shape[0]):
+            snippets = np.zeros((piece_pool.shape[0], 1, self.sheet_shape[0], self.sheet_shape[1]), dtype=np.uint8)
+            for i in range(piece_pool.shape[0]):
 
                 # get image snippet
-                image, _ = piece_pool[j:j+1]
-
-                # compute sheet snippet code
-                code = self.embed_network.compute_view_1(image)
-
-                # keep code
-                self.sheet_snippet_codes = np.concatenate((self.sheet_snippet_codes, code))
+                snippet, _ = piece_pool[i:i+1]
+                snippet = snippet[0, 0]
+                snippets[i, 0] = snippet
 
                 # keep sheet snippets
                 if keep_snippets:
-                    snippet = resize_image(image[0, 0], rsz=0.5).astype(np.uint8)[np.newaxis]
+                    snippet = resize_image(snippet, rsz=0.5).astype(np.uint8)[np.newaxis]
                     self.sheet_snippets = np.concatenate((self.sheet_snippets, snippet))
+
+            # compute sheet snippet codes
+            codes = self.embed_network.compute_view_1(snippets)
+
+            # keep codes
+            self.sheet_snippet_codes = np.concatenate((self.sheet_snippet_codes, codes))
 
             # save id of piece
             piece_ids = np.ones(piece_pool.shape[0], dtype=np.int) * piece_idx
@@ -370,24 +376,70 @@ class AudioSheetServer(object):
                                                  data_augmentation=augment, shuffle=False)
 
             # embed audio excerpt of piece
-            for j in xrange(piece_pool.shape[0]):
+            excerpts = np.zeros((piece_pool.shape[0], 1, self.spec_shape[0], self.spec_shape[1]), dtype=np.float32)
+            for j in range(piece_pool.shape[0]):
 
-                # get image snippet
+                # get spectrogram excerpt
                 _, spec = piece_pool[j:j + 1]
-
-                # compute audio excerpt code
-                code = self.embed_network.compute_view_2(spec)
-
-                # keep code
-                self.perform_excerpt_codes = np.concatenate((self.perform_excerpt_codes, code))
+                excerpts[j, 0] = spec
 
                 # TODO: keep excerpt snippets
                 # don't know yet how much sense this makes
                 if keep_snippets:
                     pass
 
+            # compute audio excerpt code
+            codes = self.embed_network.compute_view_2(excerpts)
+
+            # keep code
+            self.perform_excerpt_codes = np.concatenate((self.perform_excerpt_codes, codes))
+
             # save id of piece
             piece_ids = np.ones(piece_pool.shape[0], dtype=np.int) * piece_idx
+            self.perform_excerpt_ids = np.concatenate((self.perform_excerpt_ids, piece_ids))
+
+        print("%s audio excerpts of %d pieces collected" % (self.perform_excerpt_codes.shape[0], len(pieces)))
+
+    def initialize_audio_db_from_specs(self, pieces, spectrograms, keep_snippets=False):
+        """ init audio data base """
+        print("Initializing audio db ...")
+
+        self.id_to_perform = dict()
+        self.perform_excerpt_ids = np.zeros(0, dtype=np.int)
+        self.perform_excerpt_codes = np.zeros((0, self.embed_network.code_dim), dtype=np.float32)
+        self.perform_excerpts = np.zeros((0, self.excerpt_shape[0] // 2, self.excerpt_shape[1] // 2), dtype=np.uint8)
+
+        # initialize retrieval pool
+        for piece_idx, piece in enumerate(pieces):
+            print(" (%03d / %03d) %s" % (piece_idx + 1, len(pieces), piece))
+
+            # load piece
+            self.id_to_perform[piece_idx] = piece
+            spectrogram = spectrograms[piece_idx]
+
+            # compute spectrogram excerpts
+            indices = np.arange(0, spectrogram.shape[1] - self.spec_shape[1], self.spec_shape[1] // 4)
+
+            # embed audio excerpt of piece
+            excerpts = np.zeros((len(indices), 1, self.spec_shape[0], self.spec_shape[1]), dtype=np.float32)
+            for i, idx in enumerate(indices):
+
+                # get spectrogram snippet
+                excerpts[i, 0] = spectrogram[:, idx:idx + self.spec_shape[1]]
+
+                # TODO: keep excerpt snippets
+                # don't know yet how much sense this makes
+                if keep_snippets:
+                    pass
+
+            # compute audio excerpt code
+            codes = self.embed_network.compute_view_2(excerpts)
+
+            # keep code
+            self.perform_excerpt_codes = np.concatenate((self.perform_excerpt_codes, codes))
+
+            # save id of piece
+            piece_ids = np.ones(len(indices), dtype=np.int) * piece_idx
             self.perform_excerpt_ids = np.concatenate((self.perform_excerpt_ids, piece_ids))
 
         print("%s audio excerpts of %d pieces collected" % (self.perform_excerpt_codes.shape[0], len(pieces)))
@@ -416,23 +468,24 @@ class AudioSheetServer(object):
             r0 = piece_image.shape[0] // 2 - self.sheet_shape[0] // 2
             r1 = r0 + self.sheet_shape[0]
 
-            # embed sheet snippets of piece
-            for j in indices:
+            # get snippets
+            snippets = np.zeros((len(indices), 1, self.sheet_shape[0], self.sheet_shape[1]), dtype=np.uint8)
+            for i, c in enumerate(indices):
 
                 # get image snippet
-                image = piece_image[r0:r1, j:j + self.sheet_shape[1]]
-                image = image[np.newaxis, np.newaxis]
-
-                # compute sheet snippet code
-                code = self.embed_network.compute_view_1(image)
-
-                # keep code
-                self.sheet_snippet_codes = np.concatenate((self.sheet_snippet_codes, code))
+                snippet = piece_image[r0:r1, c:c + self.sheet_shape[1]]
+                snippets[i, 0] = snippet
 
                 # keep sheet snippets
                 if keep_snippets:
-                    snippet = resize_image(image[0, 0], rsz=0.5).astype(np.uint8)[np.newaxis]
+                    snippet = resize_image(snippet, rsz=0.5).astype(np.uint8)[np.newaxis]
                     self.sheet_snippets = np.concatenate((self.sheet_snippets, snippet))
+
+            # compute sheet snippet codes
+            codes = self.embed_network.compute_view_1(snippets)
+
+            # keep codes
+            self.sheet_snippet_codes = np.concatenate((self.sheet_snippet_codes, codes))
 
             # save id of piece
             piece_ids = np.ones(len(indices), dtype=np.int) * piece_idx

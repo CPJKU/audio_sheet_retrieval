@@ -6,6 +6,8 @@ import numpy as np
 import theano
 import lasagne
 
+from utils.batch_iterators import batch_compute2
+
 
 class RetrievalWrapper(object):
     """ Wrapper for cross modality retrieval networks """
@@ -47,23 +49,32 @@ class RetrievalWrapper(object):
 
         X = X.copy()
 
-        # normalize data
-        if self.prepare_view_1 is not None:
-            X = self.prepare_view_1(X)
+        # # normalize data
+        # if self.prepare_view_1 is not None:
+        #     X = self.prepare_view_1(X)
 
-        return self.compute_v1_latent(X, self.dummy_in_v2)
+        # return self.compute_v1_latent(X, self.dummy_in_v2)
+
+        dummy_in_v2 = np.repeat(self.dummy_in_v2, X.shape[0], axis=0)
+        return batch_compute2(X, dummy_in_v2, self.compute_v1_latent,
+                              batch_size=min(100, X.shape[0]),
+                              prepare1=self.prepare_view_1)
 
     def compute_view_2(self, Z):
         """ compute network output of view 2 """
 
         Z = Z.copy()
 
-        # normalize data
-        if self.prepare_view_2 is not None:
-            Z = self.prepare_view_2(Z)
+        # # normalize data
+        # if self.prepare_view_2 is not None:
+        #     Z = self.prepare_view_2(Z)
 
-        return self.compute_v2_latent(self.dummy_in_v1, Z)
+        # return self.compute_v2_latent(self.dummy_in_v1, Z)
 
+        dummy_in_v1 = np.repeat(self.dummy_in_v1, Z.shape[0], axis=0)
+        return batch_compute2(dummy_in_v1, Z, self.compute_v2_latent,
+                              batch_size=min(100, Z.shape[0]),
+                              prepare2=self.prepare_view_2)
 
 if __name__ == '__main__':
     """ main """
