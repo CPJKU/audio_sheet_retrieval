@@ -5,6 +5,8 @@ This repository contains all experimental code for reproducing the results
 reported in our manuscript:
 
 >End-to-End Audio – Sheet Music Correspondence Learning and Retrieval.<br>
+=======
+*End-to-End Audio – Sheet Music Correspondence Learning and Retrieval.*<br>
 Anonymous Authors.<br>
 Under review for TISMIR Volume 1, 2018
 
@@ -16,6 +18,8 @@ An implementation of this layer can be found in this sub folder of this reposito
 And a detailed description is provided in:
 
 >End-to-End Cross-Modality Retrieval with CCA Projections and Pairwise Ranking Loss.<br>
+=======
+*End-to-End Cross-Modality Retrieval with CCA Projections and Pairwise Ranking Loss.*<br>
 M Dorfer, J Schlüter, A Vall, F Korzeniowski, G Widmer.<br>
 arXiv preprint arXiv:1705.06979
 
