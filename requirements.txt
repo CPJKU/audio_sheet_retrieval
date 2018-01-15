@@ -1,0 +1,12 @@
+tqdm==4.19.2
+matplotlib==1.5.3
+seaborn==0.7.1
+pandas==0.18.1
+numpy==1.13.1
+opencv_python==3.1.0.3
+scipy==0.19.1
+lasagne==0.1
+madmom==0.15.1
+omr==0.0.73
+theano==1.0.1
+PyYAML==3.12

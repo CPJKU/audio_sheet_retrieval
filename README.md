@@ -26,10 +26,11 @@ An implementation of the layer is also contained in this repository:<br>
 
 Setup and Requirements
 ----------------------
-To see a list of required python packages see the *requirements.txt*
+We assume here that a standard "scientific Python" environment with NumPy, SciPy, etc. is installed.
+For a list of additional required python packages see the *requirements.txt*
 or just install them all at once using pip.
 ```
-pip install requirements.txt
+pip install -r requirements.txt
 ```
 
 To install the *audio_sheet_retrieval* package in develop mode run
