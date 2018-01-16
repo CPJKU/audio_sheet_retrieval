@@ -26,14 +26,13 @@ An implementation of the layer is also contained in this repository:<br>
 
 Setup and Requirements
 ----------------------
-We assume here that a standard "scientific Python" environment with NumPy, SciPy, etc. is installed.
-For a list of additional required python packages see the *requirements.txt*
+For a list of required python packages see the *requirements.txt*
 or just install them all at once using pip.
 ```
 pip install -r requirements.txt
 ```
 
-To install the *audio_sheet_retrieval* package in develop mode run
+To install the *audio_sheet_retrieval* package in develop mode (this is what we recommend) run
 ```
 python setup.py develop --user
 ```
@@ -50,7 +49,7 @@ However, training the models is performed exclusively on MSMD.
 Preparation
 -----------
 Before you can start running the code make sure that all paths are configured correctly.
-In particular, you have to specify two paths in the file *config/settings.py*:
+In particular, you have to specify two paths in the file *audio_sheet_retrieval/config/settings.py*:
 ```
 # path where model folder gets created and parameters and results get dumped
 EXP_ROOT = "/home/matthias/experiments/audio_sheet_retrieval/"
