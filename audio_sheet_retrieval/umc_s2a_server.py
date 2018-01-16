@@ -6,7 +6,6 @@ import yaml
 import argparse
 import numpy as np
 import seaborn as sns
-from scipy.spatial.distance import cdist
 
 from config.settings import EXP_ROOT
 from utils.plotting import BColors

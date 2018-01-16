@@ -189,10 +189,6 @@ def load_sheets(umc_dir = "/home/matthias/Data/mini_umc/"):
     return piece_names, piece_paths, unwrapped_sheets
 
 
-# /home/matthias/Data/sheet_localization/real_music
-# /home/matthias/Desktop/umc_chopin
-# /home/matthias/mounts/home@rechenknecht1/Data/umc_beethoven
-# /home/matthias/Data/umc_mozart
 def load_umc_sheets(data_dir="/home/matthias/Data/umc_mozart", require_performance=False):
     """ load unwarpped sheets """
     import shutil

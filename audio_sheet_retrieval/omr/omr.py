@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 from skimage.feature import peak_local_max
 from skimage.measure import label, regionprops
 
+from audio_sheet_retrieval.utils.net_utils import load_net_params
+
 
 def prepare_image(img):
     img = img.astype(np.float32)
@@ -172,8 +174,7 @@ class Network(object):
         """
         load model from disk
         """
-        with open(file_path, 'r') as fp:
-            params = pickle.load(fp)
+        params = load_net_params(file_path)
         lasagne.layers.set_all_param_values(self.net, params)
 
     def _compile_prediction_function(self, target_layer=None):
