@@ -11,7 +11,7 @@ import numpy as np
 # SRC_DIR = "/media/matthias/Data/umc_export/"
 SRC_DIR = "/home/matthias/mounts/root@coltrane/srv/files/cp/temp/export_matthias/"
 # DST_DIR = "/media/matthias/Data/umc_chopin/"
-DST_DIR = "/media/matthias/Data/umc_beethoven/"
+DST_DIR = "/media/matthias/Data/umc_chopin/"
 
 
 def resize_img(I):
@@ -33,14 +33,14 @@ if __name__ == "__main__":
         piece_name = os.path.basename(piece_dir)
         print "processing piece (%d / %d) %s" % (i_piece + 1, len(piece_dirs), piece_name)
 
-        # if "Chopin" not in piece_dir:
-        #     continue
+        if "Chopin" not in piece_dir:
+            continue
 
         # if "Mozart" not in piece_dir:
         #     continue
 
-        if "Beethoven" not in piece_dir:
-            continue
+        # if "Beethoven" not in piece_dir:
+        #     continue
 
         # prepare folders
         dst_piece_dir = os.path.join(os.path.join(DST_DIR, piece_name))
@@ -73,11 +73,12 @@ if __name__ == "__main__":
         shutil.copy(audio_path, trg_audio_path)
 
         # copy performances if there
+        max_performances = 3
         perf_path = os.path.join(piece_dir, "audio")
         if os.path.exists(perf_path):
             audio_paths = glob.glob(os.path.join(perf_path, "*"))
             print "Found %d performances" % len(audio_paths)
-            audio_paths = audio_paths[:3]
+            audio_paths = audio_paths[:max_performances]
             for i_audio, audio_path in enumerate(audio_paths):
                 ext = os.path.splitext(audio_path)[1]
                 dst = os.path.join(dst_piece_dir, "%02d_performance%s" % (i_audio + 1, ext))

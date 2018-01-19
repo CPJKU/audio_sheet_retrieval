@@ -192,14 +192,14 @@ def prepare(x, y=None):
 
 def valid_batch_iterator():
     """ Compile batch iterator """
-    from multi_modality_hashing.utils.batch_iterators import MultiviewPoolIteratorUnsupervised
+    from audio_sheet_retrieval.utils.batch_iterators import MultiviewPoolIteratorUnsupervised
     batch_iterator = MultiviewPoolIteratorUnsupervised(batch_size=BATCH_SIZE, prepare=prepare, shuffle=False)
     return batch_iterator
 
 
 def train_batch_iterator(batch_size=BATCH_SIZE):
     """ Compile batch iterator """
-    from multi_modality_hashing.utils.batch_iterators import MultiviewPoolIteratorUnsupervised
+    from audio_sheet_retrieval.utils.batch_iterators import MultiviewPoolIteratorUnsupervised
     batch_iterator = MultiviewPoolIteratorUnsupervised(batch_size=batch_size, prepare=prepare, k_samples=10000)
     return batch_iterator
 
