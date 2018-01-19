@@ -8,7 +8,7 @@ reported in our manuscript:
 "Audio-Sheet Music Correspondence Learning and Retrieval".<br>
 Under review for *Transactions of the International Society for Music Information Retrieval*, 2018
 
-The paper above is an invited extension of our previous work presented in:
+The paper above is an invited extension of the work presented in:
 
 >Dorfer M., Arzt A., and G. Widmer.<br>
 "Learning audio-sheet music correspondences for score identification and offline alignment".<br>
@@ -38,10 +38,13 @@ python setup.py develop --user
 ```
 in the root folder of the package.
 
+You will also need the **MSMD dataset python package** available
+at your system in order to be able to load the data (here is how you get it).
+
 The MSMD Data Set
 -----------------
 Almost all of our experiments are based on the proposed Mulitmodal Sheet Music Data Set (MSMD).
-For a detailed description of the MSMD data and how to get it please visit (TODO).
+For a detailed description of the MSMD data and how to get and load it please visit (TODO).
 The only set of experiments not covered in this repository are the ones carried out
 on commercially licenced sheet music.
 However, training the models is performed exclusively on MSMD.

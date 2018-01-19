@@ -2,10 +2,10 @@
 from __future__ import print_function
 
 import os
+import glob
 import yaml
 import argparse
 import numpy as np
-import matplotlib.pyplot as plt
 import seaborn as sns
 
 from config.settings import EXP_ROOT
@@ -25,173 +25,34 @@ colors = sns.color_palette()
 col = BColors()
 
 
+def get_performance_audio_path(piece_path, file_pattern):
+    """ pass """
+    audio_path = os.path.join(piece_path, file_pattern + "*")
+    audio_path = glob.glob(audio_path)[0]
+    return audio_path
+
+
+def load_specs(piece_paths, audio_file):
+    """ Compute spectrograms given piece paths """
+
+    spectrograms = []
+
+    for piece_path in piece_paths:
+        audio_path = get_performance_audio_path(piece_path, audio_file)
+        spec = processor.process(audio_path).T
+        spectrograms.append(spec)
+
+    return spectrograms
+
+
 def spec_gen(Spec):
     """ frame from spectrogram generator """
     for i in xrange(Spec.shape[1]):
         yield Spec[:, i:i+1]
 
 
-def load_sheets(umc_dir = "/home/matthias/Data/mini_umc/"):
-    """
-    load unwarpped sheets
-    """
-    import shutil
-    import glob
-    import cv2
-    from matplotlib.patches import Polygon
-    from matplotlib.collections import PatchCollection
-    from collections import defaultdict
-
-    piece_names = []
-    unwrapped_sheets = []
-    piece_paths = []
-
-    # get list of all pieces
-    piece_dirs = np.sort(glob.glob(os.path.join(umc_dir, '*')))
-    n_pieces = len(piece_dirs)
-
-    # iterate pieces
-    for i_piece, piece_dir in enumerate(piece_dirs):
-        piece_name = piece_dir.split('/')[-1]
-
-        piece_names.append(piece_name)
-        piece_paths.append(piece_dir)
-
-        if "Beethoven" not in piece_name:
-            continue
-        print(col.print_colored("\nProcessing piece %d of %d (%s)" % (i_piece + 1, n_pieces, piece_name), col.OKBLUE))
-
-        # render audio if not there
-        trg_audio_path = os.path.join(piece_dir, "audio.flac")
-        if not os.path.exists(trg_audio_path):
-            from sheet_manager.render_audio import render_audio
-            # midi file path
-            midi_file_path = os.path.join(piece_dir, "score_ppq.mid")
-            audio_path, perf_midi_path = render_audio(midi_file_path, sound_font="grand-piano-YDP-20160804",
-                                                      velocity=None, change_tempo=True, tempo_ratio=1.0,
-                                                      target_dir=None, quiet=True, audio_fmt=".flac",
-                                                      sound_font_root="~/.fluidsynth")
-            shutil.copy(audio_path, trg_audio_path)
-
-        # load systems
-        page_systems = defaultdict(list)
-        page_system_quaters = defaultdict(list)
-        system_path = os.path.join(piece_dir, "score_systems.yaml")
-        if os.path.exists(system_path):
-            print("Systems annotated!")
-            with open(system_path, 'rb') as fp:
-                yaml_systems = yaml.load(fp)
-
-                for yaml_system in yaml_systems:
-                    page_id = yaml_system['page']
-
-                    # convert system coordinates to array
-                    system_bbox = np.zeros((4, 2))
-                    system_bbox[0] = np.asarray([yaml_system['topLeft']])
-                    system_bbox[1] = np.asarray([yaml_system['topRight']])
-                    system_bbox[2] = np.asarray([yaml_system['bottomRight']])
-                    system_bbox[3] = np.asarray([yaml_system['bottomLeft']])
-                    system_bbox = system_bbox[:, ::-1]
-
-                    # keep coordinate if system is not there
-                    system_found = False
-                    for i, bbox in enumerate(page_systems[page_id]):
-
-                        # compute overlap in y-direction
-                        dy_min = min(bbox[2, 0], system_bbox[2, 0]) - max(bbox[1, 0], system_bbox[1, 0])
-                        dy_max = max(bbox[2, 0], system_bbox[2, 0]) - min(bbox[1, 0], system_bbox[1, 0])
-                        if dy_min >= 0:
-                            overlap = dy_min / dy_max
-                        else:
-                            overlap = 0
-
-                        if overlap == 1:
-                            system_found = True
-                        elif overlap > 0:
-                            system_found = True
-
-                            # merge system coordinates
-                            system_bbox[0, 1] = min(bbox[0, 1], system_bbox[0, 1])
-                            system_bbox[1, 1] = max(bbox[1, 1], system_bbox[1, 1])
-                            system_bbox[2, 1] = max(bbox[1, 1], system_bbox[1, 1])
-                            system_bbox[3, 1] = min(bbox[0, 1], system_bbox[0, 1])
-                            page_systems[page_id][i] = system_bbox
-
-                            # append quarters covered by system
-                            page_system_quaters[page_id][i].append(yaml_system['quarters'])
-
-                    if not system_found:
-                        page_systems[page_id].append(system_bbox)
-                        page_system_quaters[page_id].append([yaml_system['quarters']])
-
-                # convert coordinates to array
-                for page_id in page_systems.keys():
-                    page_systems[page_id] = np.asarray(page_systems[page_id], dtype=np.float32)
-
-        else:
-            print("No systems annotated!")
-            continue
-
-        # load pages
-        unwrapped_sheet = np.zeros((SYSTEM_HEIGHT, 0), dtype=np.uint8)
-        page_paths = np.sort(glob.glob(os.path.join(piece_dir, "pages/*.png")))
-        for i_page, page_path in enumerate(page_paths):
-            page_id = i_page + 1
-            I = cv2.imread(page_path, 0)
-
-            # resize image
-            width = 835
-            scale = float(width) / I.shape[1]
-            height = int(scale * I.shape[0])
-            I = cv2.resize(I, (width, height))
-
-            # re-scale coordinates
-            page_systems[page_id] *= scale
-
-            # unwrap sheet
-            for system in page_systems[page_id]:
-                system = system.astype(np.int)
-
-                r0 = int(np.mean([system[0, 0], system[2, 0]])) - SYSTEM_HEIGHT // 2
-                r1 = r0 + SYSTEM_HEIGHT
-                c0 = int(system[0, 1])
-                c1 = int(system[1, 1])
-
-                unwrapped_sheet = np.hstack((unwrapped_sheet, I[r0:r1, c0:c1].astype(np.uint8)))
-
-            # show sheet image and annotations
-            if 0:
-                plt.figure("sheet")
-                plt.clf()
-                ax = plt.subplot(111)
-
-                # plot sheet
-                plt.imshow(I, cmap=plt.cm.gray)
-                plt.xlim([0, I.shape[1] - 1])
-                plt.ylim([I.shape[0] - 1, 0])
-
-                # plot system centers
-                system_centers = np.mean(page_systems[page_id][:, [0, 3], 0], axis=1, keepdims=True)
-                plt.plot(page_systems[page_id][:, 0, 1], system_centers.flatten(), 'mo')
-
-                # plot systems
-                patches = []
-                for system_coords in page_systems[page_id]:
-                    polygon = Polygon(system_coords[:, ::-1], True)
-                    patches.append(polygon)
-                p = PatchCollection(patches, color='r', alpha=0.2)
-                ax.add_collection(p)
-
-                plt.show(block=True)
-
-        unwrapped_sheets.append(unwrapped_sheet)
-
-    return piece_names, piece_paths, unwrapped_sheets
-
-
 def load_umc_sheets(data_dir="/home/matthias/Data/umc_mozart", require_performance=False):
     """ load unwarpped sheets """
-    import shutil
     import glob
     import cv2
 
@@ -204,11 +65,11 @@ def load_umc_sheets(data_dir="/home/matthias/Data/umc_mozart", require_performan
 
     net = system_detector.build_model()
     system_net = SegmentationNetwork(net, print_architecture=False)
-    system_net.load('omr_models/system_params.pkl')
+    system_net.load('sheet_utils/omr_models/system_params.pkl')
 
     net = bar_detector.build_model()
     bar_net = SegmentationNetwork(net, print_architecture=False)
-    bar_net.load('omr_models/bar_params.pkl')
+    bar_net.load('sheet_utils/omr_models/bar_params.pkl')
 
     piece_names = []
     unwrapped_sheets = []
@@ -219,6 +80,7 @@ def load_umc_sheets(data_dir="/home/matthias/Data/umc_mozart", require_performan
     n_pieces = len(piece_dirs)
 
     # iterate pieces
+    kept_pages = 0
     for i_piece, piece_dir in enumerate(piece_dirs):
         piece_name = piece_dir.split('/')[-1]
 
@@ -241,6 +103,9 @@ def load_umc_sheets(data_dir="/home/matthias/Data/umc_mozart", require_performan
         unwrapped_sheet = np.zeros((SYSTEM_HEIGHT, 0), dtype=np.uint8)
         system_problem = False
         for i_page, page_path in enumerate(page_paths):
+            kept_pages += 1
+
+            # load sheet image
             I = cv2.imread(page_path, 0)
 
             # load system coordinates
@@ -301,6 +166,8 @@ def load_umc_sheets(data_dir="/home/matthias/Data/umc_mozart", require_performan
             piece_paths.append(piece_dir)
             unwrapped_sheets.append(unwrapped_sheet)
 
+    print("%d pieces covering %d pages of sheet music." % (len(piece_names), kept_pages))
+
     return piece_names, piece_paths, unwrapped_sheets
 
 
@@ -360,7 +227,7 @@ if __name__ == '__main__':
 
             # compute spectrogram from file
             if args.real_perf:
-                audio_file = os.path.join(piece_paths[i], "01_performance.wav")
+                audio_file = get_performance_audio_path(piece_paths[i], "01_performance")
             else:
                 audio_file = os.path.join(piece_paths[i], "score_ppq.flac")
 
@@ -380,7 +247,13 @@ if __name__ == '__main__':
                 rank = len(ret_result)
                 ratio = 0.0
             ranks.append(rank)
-            color = col.OKBLUE if ranks[-1] == 1 else col.WARNING
+            if ranks[-1] == 1:
+                color = col.OKGREEN
+            elif ranks[-1] <= 5:
+                color = col.OKBLUE
+            else:
+                color = col.WARNING
+
             print(col.print_colored("rank: %02d (%.2f) " % (ranks[-1], ratio), color) + tp)
 
         # report results

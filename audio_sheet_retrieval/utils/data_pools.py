@@ -366,7 +366,7 @@ def unwrap_sheet_image(image, system_mungos, mdict, window_top=100, window_botto
     return un_wrapped_image, un_wrapped_coords
 
 
-def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT, require_audio=True):
+def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT, require_audio=True, load_midi_matrix=False):
     """
 
     :param collection_dir:
@@ -398,6 +398,7 @@ def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT, requir
 
     # load performances
     spectrograms = []
+    midi_matrices = []
     onset_to_coord_maps = []
 
     for performance_key in piece.available_performances:
@@ -422,15 +423,20 @@ def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT, requir
 
         # load spectrogram
         spec = performance.load_spectrogram()
+        spectrograms.append(spec)
 
         # compute onset to coordinate mapping
         onset_to_coord = onset_to_coordinates(alignment, un_wrapped_coords, note_events)
-
-        # keep stuff
-        spectrograms.append(spec)
         onset_to_coord_maps.append(onset_to_coord)
 
-    return un_wrapped_image, spectrograms, onset_to_coord_maps
+        if load_midi_matrix:
+            midi = performance.load_midi_matrix()
+            midi_matrices.append(midi)
+
+    if load_midi_matrix:
+        return un_wrapped_image, spectrograms, onset_to_coord_maps, midi_matrices
+    else:
+        return un_wrapped_image, spectrograms, onset_to_coord_maps
 
 
 def load_audio_score_retrieval():

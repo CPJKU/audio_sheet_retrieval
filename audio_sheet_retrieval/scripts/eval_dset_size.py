@@ -71,6 +71,6 @@ if __name__ == "__main__":
     ax.yaxis.grid(True)
     plt.xticks(x + 0.4, labels)
     plt.xlabel("% of Original Train Data")
-    plt.ylabel("MAP")
+    plt.ylabel("MRR")
     plt.xlim([-0.2, 5.0])
     plt.savefig("eval_dset_size.pdf")

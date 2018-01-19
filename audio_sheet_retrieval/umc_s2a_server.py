@@ -11,9 +11,7 @@ from config.settings import EXP_ROOT
 from utils.plotting import BColors
 from run_train import compile_tag, select_model
 from audio_sheet_server import AudioSheetServer
-from umc_a2s_server import load_umc_sheets
-
-from sheet_manager.midi_parser import processor, SAMPLE_RATE, FRAME_SIZE, FPS
+from umc_a2s_server import load_umc_sheets, load_specs
 
 
 # set seaborn style and get colormap
@@ -23,18 +21,6 @@ colors = sns.color_palette()
 # init color printer
 col = BColors()
 
-
-def load_specs(piece_paths, audio_file):
-    """ Compute spectrograms given piece paths """
-
-    spectrograms = []
-
-    for piece_path in piece_paths:
-        audio_path = os.path.join(piece_path, audio_file)
-        spec = processor.process(audio_path).T
-        spectrograms.append(spec)
-
-    return spectrograms
 
 if __name__ == '__main__':
     """ main """
@@ -59,7 +45,7 @@ if __name__ == '__main__':
 
     # load corresponding performance spectrograms
     print("Loading spectrograms ...")
-    audio_file = "01_performance.wav" if args.real_perf else "score_ppq.flac"
+    audio_file = "01_performance" if args.real_perf else "score_ppq"
     spectrograms = load_specs(piece_paths, audio_file=audio_file)
 
     # tag parameter file
@@ -108,7 +94,12 @@ if __name__ == '__main__':
                 rank = len(ret_result)
                 ratio = 0.0
             ranks.append(rank)
-            color = col.OKBLUE if ranks[-1] == 1 else col.WARNING
+            if ranks[-1] == 1:
+                color = col.OKGREEN
+            elif ranks[-1] <= 5:
+                color = col.OKBLUE
+            else:
+                color = col.WARNING
             print(col.print_colored("rank: %02d (%.2f) " % (ranks[-1], ratio), color) + tp)
 
         # report results

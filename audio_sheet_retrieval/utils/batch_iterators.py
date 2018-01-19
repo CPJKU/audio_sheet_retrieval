@@ -221,6 +221,68 @@ class MultiviewPoolIteratorUnsupervised(object):
         return self.prepare(xb, zb)
 
 
+class TripleviewPoolIteratorUnsupervised(object):
+    """
+    Batch iterator for multiview data
+    """
+
+    def __init__(self, batch_size, prepare=None, k_samples=None, shuffle=True):
+        self.batch_size = batch_size
+
+        if prepare is None:
+            def prepare(x, y, z):
+                return x, y, z
+        self.prepare = prepare
+        self.shuffle = shuffle
+
+        self.k_samples = k_samples
+        self.epoch_counter = 0
+        self.n_epochs = None
+
+    def __call__(self, pool):
+        self.pool = pool
+        if self.k_samples is None:
+            self.k_samples = self.pool.shape[0]
+        self.n_batches = self.k_samples // self.batch_size
+        self.n_epochs = max(1, self.pool.shape[0] // self.k_samples)
+
+        return self
+
+    def __iter__(self):
+        n_samples = self.k_samples
+        bs = self.batch_size
+
+        # compute current epoch index
+        idx_epoch = np.mod(self.epoch_counter, self.n_epochs)
+
+        for i in range((n_samples + bs - 1) / bs):
+
+            i_start = i * bs + idx_epoch * self.k_samples
+            i_stop = (i + 1) * bs + idx_epoch * self.k_samples
+            sl = slice(i_start, i_stop)
+            xb, zb, wb = self.pool[sl]
+
+            if xb.shape[0] < self.batch_size:
+                n_missing = self.batch_size - xb.shape[0]
+
+                x_con, z_con, w_con = self.pool[0:n_missing]
+
+                xb = np.concatenate((xb, x_con))
+                zb = np.concatenate((zb, z_con))
+                wb = np.concatenate((wb, w_con))
+
+            yield self.transform(xb, zb, wb)
+
+        self.epoch_counter += 1
+
+        # shuffle train data after full set iteration
+        if self.shuffle and (idx_epoch + 1) == self.n_epochs:
+            self.pool.reset_batch_generator()
+
+    def transform(self, xb, zb, wb):
+        return self.prepare(xb, zb, wb)
+
+
 # --- main ---
 
 if __name__ == '__main__':

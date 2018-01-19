@@ -110,12 +110,12 @@ if __name__ == "__main__":
         return batch_iterator
 
     data = load_audio_score_retrieval(split_file="/home/matthias/cp/src/sheet_manager/sheet_manager/splits/bach_split.yaml",
-                                      config_file="/home/matthias/cp/src/audio_sheet_retrieval/audio_sheet_retrieval/exp_configs/mutopia_full_augment.yaml",
-                                      test_only=False)
+                                      config_file="/home/matthias/cp/src/audio_sheet_retrieval/audio_sheet_retrieval/exp_configs/mutopia_no_aug.yaml",
+                                      test_only=True)
 
     bi = train_batch_iterator(batch_size=5)
 
-    iterator = bi(data["train"])
+    iterator = bi(data["test"])
 
     # show some train samples
     import time
@@ -123,8 +123,6 @@ if __name__ == "__main__":
     for epoch in xrange(1000):
         start = time.time()
         for i, (sheet, spec) in enumerate(iterator):
-
-            continue
 
             plt.figure()
             plt.clf()

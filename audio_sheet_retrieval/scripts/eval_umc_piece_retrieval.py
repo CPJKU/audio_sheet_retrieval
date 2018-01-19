@@ -14,8 +14,8 @@ from collections import OrderedDict
 
 composers = OrderedDict()
 composers["umc_mozart"] = "Mozart"
-composers["umc_chopin"] = "Chopin"
 composers["umc_beethoven"] = "Beethoven"
+composers["umc_chopin"] = "Chopin"
 
 
 if __name__ == "__main__":
@@ -58,7 +58,7 @@ if __name__ == "__main__":
                     with open(eval_file, 'rb') as fp:
                         ranks = yaml.load(fp)
                     ranks = np.sort(ranks)
-                    for idx, thr in enumerate([1, 3, 5]):
+                    for idx, thr in enumerate([1, 5, 10]):
                         aug_ranks[idx] = "%d" % np.sum(ranks <= thr)
                     aug_ranks[-1] = "%d" % np.sum(ranks > thr)
 
