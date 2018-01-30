@@ -1,11 +1,11 @@
 
-Audio-Sheet Music Correspondence Learning and Retrieval
-=======================================================
+Learning Audio-Sheet Music Correspondences for Cross-Modal Retrieval and Piece Identification
+=============================================================================================
 This repository contains all experimental code for reproducing the results
 reported in our manuscript:
 
 >Anonymous Authors.<br>
-"Audio-Sheet Music Correspondence Learning and Retrieval".<br>
+"Learning Audio-Sheet Music Correspondences for Cross-Modal Retrieval and Piece Identification".<br>
 Under review for *Transactions of the International Society for Music Information Retrieval*, 2018
 
 The paper above is an invited extension of the work presented in:
