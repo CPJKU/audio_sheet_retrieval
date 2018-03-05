@@ -32,6 +32,12 @@ or just install them all at once using pip.
 pip install -r requirements.txt
 ```
 
+We also provide an [anaconda environment file](https://conda.io/docs/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file)
+which can be installed as follows:
+```
+conda env create -f environment.yaml
+```
+
 To install the *audio_sheet_retrieval* package in develop mode (this is what we recommend) run
 ```
 python setup.py develop --user

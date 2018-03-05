@@ -59,8 +59,10 @@ if __name__ == "__main__":
                         ranks = yaml.load(fp)
                     ranks = np.sort(ranks)
                     for idx, thr in enumerate([1, 5, 10]):
-                        aug_ranks[idx] = "%d" % np.sum(ranks <= thr)
-                    aug_ranks[-1] = "%d" % np.sum(ranks > thr)
+                        cnt = float(np.sum(ranks <= thr))
+                        aug_ranks[idx] = "%d (%.2f)" % (cnt, (cnt / len(ranks)))
+                    cnt = float(np.sum(ranks > thr))
+                    aug_ranks[-1] = "%d (%.2f)" % (cnt, (cnt / len(ranks)))
 
                 for i in range(len(aug_ranks)):
                     table_row += " & %s" % aug_ranks[i]

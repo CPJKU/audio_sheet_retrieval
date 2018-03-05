@@ -18,9 +18,9 @@ aug_mapping["mutopia_no_aug"] = "none"
 aug_mapping["mutopia_full_aug"] = "full"
 
 split_mapping = OrderedDict()
-split_mapping["bach_split"] = "bach-set"
-split_mapping["bach_out_split"] = "bach-out"
-split_mapping["all_split"] = "all"
+split_mapping["bach_split"] = "\\bachset"
+split_mapping["bach_out_split"] = "\\bachoutset"
+split_mapping["all_split"] = "\\allset"
 
 if __name__ == "__main__":
     """ main """
@@ -65,8 +65,10 @@ if __name__ == "__main__":
                         ranks = yaml.load(fp)
                     ranks = np.sort(ranks)
                     for idx, thr in enumerate([1, 5, 10]):
-                        aug_ranks[idx] = "%d" % np.sum(ranks <= thr)
-                    aug_ranks[-1] = "%d" % np.sum(ranks > thr)
+                        cnt = float(np.sum(ranks <= thr))
+                        aug_ranks[idx] = "%d (%.2f)" % (cnt, (cnt / len(ranks)))
+                    cnt = float(np.sum(ranks > thr))
+                    aug_ranks[-1] = "%d (%.2f)" % (cnt, (cnt / len(ranks)))
 
                 for i in range(len(aug_ranks)):
                     table_row += " & %s" % aug_ranks[i]
