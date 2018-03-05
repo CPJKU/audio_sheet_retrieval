@@ -106,7 +106,7 @@ if __name__ == "__main__":
     def train_batch_iterator(batch_size=1):
         """ Compile batch iterator """
         from audio_sheet_retrieval.utils.batch_iterators import MultiviewPoolIteratorUnsupervised
-        batch_iterator = MultiviewPoolIteratorUnsupervised(batch_size=batch_size, prepare=prepare, k_samples=None)
+        batch_iterator = MultiviewPoolIteratorUnsupervised(batch_size=batch_size, prepare=None, k_samples=None)
         return batch_iterator
 
     data = load_audio_score_retrieval(split_file="/home/matthias/cp/src/sheet_manager/sheet_manager/splits/all_split.yaml",
@@ -131,12 +131,12 @@ if __name__ == "__main__":
             plt.imshow(sheet[0, 0], cmap="gray")
             plt.ylabel(sheet[0, 0].shape[0])
             plt.xlabel(sheet[0, 0].shape[1])
-            plt.colorbar()
+            # plt.colorbar()
 
             plt.subplot(1, 2, 2)
-            plt.imshow(spec[0, 0], cmap="viridis", origin="lower")
+            plt.imshow(spec[0, 0], cmap="gray_r", origin="lower")
             plt.ylabel(spec[0, 0].shape[0])
             plt.xlabel(spec[0, 0].shape[1])
-            plt.colorbar()
+            # plt.colorbar()
 
             plt.show()
