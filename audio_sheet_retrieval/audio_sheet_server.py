@@ -23,7 +23,7 @@ from retrieval_wrapper import RetrievalWrapper
 from utils.data_pools import NO_AUGMENT
 from utils.data_pools import SPEC_CONTEXT, SPEC_BINS, SHEET_CONTEXT, SYSTEM_HEIGHT
 
-from sheet_manager.midi_parser import processor, SAMPLE_RATE, FRAME_SIZE, FPS
+from msmd.midi_parser import processor, SAMPLE_RATE, FRAME_SIZE, FPS
 
 
 # set seaborn style and get colormap

@@ -16,7 +16,7 @@ from utils.alignment import compute_alignment, estimate_alignment_error
 
 from run_train import compile_tag
 
-from sheet_manager.midi_parser import processor
+from msmd.midi_parser import processor
 from utils.data_pools import prepare_piece_data, AudioScoreRetrievalPool
 
 sns.set_style('ticks')

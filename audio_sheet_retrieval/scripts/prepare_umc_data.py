@@ -64,7 +64,7 @@ if __name__ == "__main__":
         shutil.copy(src, dst_midi_file)
 
         # render audio
-        from sheet_manager.render_audio import render_audio
+        from msmd.render_audio import render_audio
         audio_path, perf_midi_path = render_audio(dst_midi_file, sound_font="grand-piano-YDP-20160804",
                                                   velocity=None, change_tempo=True, tempo_ratio=1.0,
                                                   target_dir=None, quiet=True, audio_fmt=".flac",

@@ -109,7 +109,7 @@ if __name__ == "__main__":
         batch_iterator = MultiviewPoolIteratorUnsupervised(batch_size=batch_size, prepare=None, k_samples=None)
         return batch_iterator
 
-    data = load_audio_score_retrieval(split_file="/home/matthias/cp/src/sheet_manager/sheet_manager/splits/all_split.yaml",
+    data = load_audio_score_retrieval(split_file="/home/matthias/cp/src/msmd/msmd/splits/all_split.yaml",
                                       config_file="/home/matthias/cp/src/audio_sheet_retrieval/audio_sheet_retrieval/exp_configs/mutopia_no_aug.yaml",
                                       test_only=True)
 

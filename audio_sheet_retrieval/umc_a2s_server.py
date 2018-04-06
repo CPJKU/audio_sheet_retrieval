@@ -14,7 +14,7 @@ from run_train import compile_tag, select_model
 from utils.data_pools import SYSTEM_HEIGHT
 from audio_sheet_server import AudioSheetServer
 
-from sheet_manager.midi_parser import processor, SAMPLE_RATE, FRAME_SIZE, FPS
+from msmd.midi_parser import processor, SAMPLE_RATE, FRAME_SIZE, FPS
 
 
 # set seaborn style and get colormap
