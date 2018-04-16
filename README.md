@@ -1,6 +1,5 @@
 
-Learning Audio-Sheet Music Correspondences for Cross-Modal Retrieval and Piece Identification
-=============================================================================================
+# Learning Audio-Sheet Music Correspondences for Cross-Modal Retrieval and Piece Identification
 This repository contains all experimental code for reproducing the results
 reported in our article:
 
@@ -23,15 +22,15 @@ International Journal of Multimedia Information Retrieval, 2018
 
 An implementation of the cca layer is contained in this repository and also available [here](https://github.com/CPJKU/cca_layer).
 
-## Table of Contents
+# Table of Contents
   * [Setup and Requirements](#installation)
-  * [The MSMD Data Set](#msmd)
+  * [MSMD Data Set](#msmd)
   * [Preparation](#preparation)
   * [Tutorials](#tutorials)
   * [Model Training](#training)
   * [Model Evaluation](#evaluation)
 
-## Setup and Requirements <a id="installation"></a>
+# Setup and Requirements <a id="installation"></a>
 For a list of required python packages see the *requirements.txt*
 or just install them all at once using pip.
 ```
@@ -53,7 +52,7 @@ in the root folder of the package.
 You will also need the **MSMD dataset python package** available
 at your system in order to be able to load the data (here is how you get it).
 
-## The MSMD Data Set <a id="msmd"></a>
+# The MSMD Data Set <a id="msmd"></a>
 Almost all of our experiments are based on the proposed Mulitmodal Sheet Music Data Set (MSMD).
 For a detailed description of the MSMD data and how to get and load it please visit our
 [data set repository](https://github.com/CPJKU/msmd).
@@ -61,7 +60,7 @@ The only set of experiments not covered in this repository are the ones carried 
 on commercially licenced sheet music.
 However, all our models are trained exclusively on MSMD.
 
-## Preparation <a id="preparation"></a>
+# Preparation <a id="preparation"></a>
 Before you can start running the code make sure that all paths are configured correctly.
 In particular, you have to specify two paths in the file *audio_sheet_retrieval/config/settings.py*:
 ```
@@ -72,14 +71,14 @@ DATA_ROOT_MSMD = '/media/matthias/Data/msmd/'
 ```
 Once this is done we can start training and evaluating our retrieval models.
 
-## Tutorials <a id="tutorials"></a>
+# Tutorials <a id="tutorials"></a>
 If you just want to apply our models to your own sheet music our audios
 check out or tutorials.
 So far we provide the following [tutorials as ipython notebooks](tutorials):
  - Embedding Tutorial
  - Embedding Tutorial Audio-to-Audio
 
-## Model Training <a id="training"></a>
+# Model Training <a id="training"></a>
 The python script *run_train.py* allows you to train all individual retrieval models.
 Alternatively, if you would like to train all models of one split
 at once you can use the additional shell script *train_models.sh*:
@@ -109,7 +108,7 @@ python refine_cca.py --n_train 25000 --model models/mutopia_ccal_cont.py --data 
 After this step you should end up with fairly well performing mutimodal audio-sheet music encoders.
 
 
-## Evaluation (Snippet / Excerpt Retrieval) <a id="evaluation"></a>
+# Evaluation (Snippet / Excerpt Retrieval) <a id="evaluation"></a>
 The code structure of the evaluation part of the repository is in line with the training functionality.
 To evaluate all models of a certain split at once simply call:
 ```
@@ -134,7 +133,7 @@ If the flag is not present we retrieve audio (spectrogram excerpts) from image q
 by default.
 
 
-## Evaluation (Score / Performance) Identification
+# Evaluation (Score / Performance) Identification
 To reproduce our experiments on score and performance identification you can
 run the following shell script.
 ```
