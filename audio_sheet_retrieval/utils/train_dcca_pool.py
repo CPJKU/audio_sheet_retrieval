@@ -124,7 +124,8 @@ def create_iter_functions(layers, objectives, compute_updates, learning_rate, l_
             print("Adding Loss of", l.__class__.__name__)
             loss = l.get_loss()
             tr_out[0] += loss
-            tr_out += [l.get_corr()]
+            if hasattr(l, 'get_corr'):
+                tr_out += [l.get_corr()]
 
         if l.name == "norm_reg_rnn":
             print("Adding Loss of", l.__class__.__name__)

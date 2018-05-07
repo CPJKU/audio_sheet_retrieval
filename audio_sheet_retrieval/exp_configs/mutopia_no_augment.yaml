@@ -8,4 +8,9 @@ AUGMENT: {
 'sheet_scaling': [1.00, 1.00],
 'onset_translation': 0,
 'spec_padding': 0,
-'interpolate': -1}
+'interpolate': -1,
+'synths': ['ElectricPiano'],
+'tempo_range': [1.00, 1.00]}
+
+TEST_SYNTH: 'grand-piano-YDP-20160804'
+TEST_TEMPO: 1.0
