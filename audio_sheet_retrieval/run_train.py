@@ -69,6 +69,9 @@ if __name__ == '__main__':
     # check if cca should be trained on network output
     fit_cca = model.FIT_CCA if hasattr(model, 'FIT_CCA') else True
 
+    # check if refinement patience is set
+    refinement_patience = getattr(model, 'REFINEMENT_PATIENCE', 10)
+
     # check if model should be pretrained
     pretrain_epochs = getattr(model, 'PRETRAIN_EPOCHS', 0)
 
@@ -111,4 +114,5 @@ if __name__ == '__main__':
                           compute_updates=model.compute_updates, l_2=model.L2, l_1=model.L1,
                           exp_name=model.EXP_NAME, out_path=out_path, dump_file=dump_file, log_file=log_file,
                           fit_cca=fit_cca, pretrain_epochs=pretrain_epochs,
-                          refinement_steps=model.REFINEMENT_STEPS, lr_multiplier=model.LR_MULTIPLIER)
+                          refinement_steps=model.REFINEMENT_STEPS, lr_multiplier=model.LR_MULTIPLIER,
+                          refinement_patience=refinement_patience)

@@ -105,7 +105,7 @@ if __name__ == '__main__':
 
     print("Computing embedding space...")
     lv1 = batch_compute2(X1, X2, compute_v1_latent, np.min([100, n_test]), prepare1=model.prepare)
-    lv2 = batch_compute2(X1, X2, compute_v2_latent, np.min([100, n_test]))
+    lv2 = batch_compute2(X1, X2, compute_v2_latent, np.min([100, n_test]), prepare1=model.prepare)
     lv1_cca = lv1
     lv2_cca = lv2
 

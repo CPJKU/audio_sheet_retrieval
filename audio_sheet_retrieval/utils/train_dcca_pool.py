@@ -322,7 +322,7 @@ def fit(layers, data, objectives,
         l_2=None, l_1=None, compute_updates=None,
         exp_name='ff', out_path=None, dump_file=None,
         fit_cca=True, do_raise=True, pretrain_epochs=0,
-        refinement_steps=0, lr_multiplier=0.1, log_file=None):
+        refinement_steps=0, lr_multiplier=0.1, refinement_patience=10, log_file=None):
     """ Train model """
 
     # check if out_path exists
@@ -505,7 +505,7 @@ def fit(layers, data, objectives,
 
                     # decrease refinement steps
                     last_improvement = 0
-                    patience = 10
+                    patience = refinement_patience
                     refinement_steps -= 1
 
                     # set net to best model so far
