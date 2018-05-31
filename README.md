@@ -5,7 +5,7 @@ reported in our article:
 
 >Dorfer M., Hajič J. jr., Arzt A., Frostel H., and Widmer G.<br>
 "Learning Audio-Sheet Music Correspondences for Cross-Modal Retrieval and Piece Identification".<br>
-To appear in *Transactions of the International Society for Music Information Retrieval*, 2018
+*Transactions of the International Society for Music Information Retrieval*, 2018
 
 The paper above is an invited extension of the work presented in:
 
