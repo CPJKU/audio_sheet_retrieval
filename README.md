@@ -50,7 +50,7 @@ python setup.py develop --user
 in the root folder of the package.
 
 You will also need the **MSMD dataset python package** available
-at your system in order to be able to load the data (here is how you get it).
+at your system in order to be able to load the data (see below how you get it).
 
 # The MSMD Data Set <a id="msmd"></a>
 Almost all of our experiments are based on the proposed Mulitmodal Sheet Music Data Set (MSMD).
