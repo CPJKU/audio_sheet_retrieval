@@ -3,14 +3,14 @@
 This repository contains all experimental code for reproducing the results
 reported in our article:
 
->Dorfer M., Hajič J. jr., Arzt A., Frostel H., and Widmer G.<br>
-"Learning Audio-Sheet Music Correspondences for Cross-Modal Retrieval and Piece Identification".<br>
+>[Learning Audio-Sheet Music Correspondences for Cross-Modal Retrieval and Piece Identification](https://transactions.ismir.net/articles/10.5334/tismir.12/)
+([PDF](https://transactions.ismir.net/articles/10.5334/tismir.12/galley/8/download/)).<br>
+Dorfer M., Hajič J. jr., Arzt A., Frostel H., and Widmer G.<br>
 *Transactions of the International Society for Music Information Retrieval*, 2018
 
 The paper above is an invited extension of the work presented in:
 
->[Learning audio-sheet music correspondences for score identification and offline alignment](https://transactions.ismir.net/articles/10.5334/tismir.12/)
-([PDF](https://transactions.ismir.net/articles/10.5334/tismir.12/galley/8/download/)).<br>
+>[Learning audio-sheet music correspondences for score identification and offline alignment](https://ismir2017.smcnus.org/wp-content/uploads/2017/10/32_Paper.pdf).<br>
 Dorfer M., Arzt A., and Widmer G.<br>
 In *Proceedings of the International Society for Music Information Retrieval Conference (ISMIR)*, 2017.
 
