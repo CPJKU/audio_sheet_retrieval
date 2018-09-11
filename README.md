@@ -9,8 +9,9 @@ reported in our article:
 
 The paper above is an invited extension of the work presented in:
 
->Dorfer M., Arzt A., and Widmer G.<br>
-"Learning audio-sheet music correspondences for score identification and offline alignment".<br>
+>[Learning audio-sheet music correspondences for score identification and offline alignment](https://transactions.ismir.net/articles/10.5334/tismir.12/)
+([PDF](https://transactions.ismir.net/articles/10.5334/tismir.12/galley/8/download/)).<br>
+Dorfer M., Arzt A., and Widmer G.<br>
 In *Proceedings of the International Society for Music Information Retrieval Conference (ISMIR)*, 2017.
 
 The retrieval methodology employed in both works is based on
