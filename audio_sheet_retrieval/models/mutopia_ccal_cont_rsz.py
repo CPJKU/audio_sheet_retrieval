@@ -151,7 +151,7 @@ build_model = get_build_model(weight_tno=WEIGHT_TNO, alpha=ALPHA, dim_latent=DIM
 
 def objectives():
     """ Compile objectives """
-    from objectives import get_contrastive_cos_loss
+    from .objectives import get_contrastive_cos_loss
     return get_contrastive_cos_loss(1.0 - WEIGHT_TNO, GAMMA)
 
 
