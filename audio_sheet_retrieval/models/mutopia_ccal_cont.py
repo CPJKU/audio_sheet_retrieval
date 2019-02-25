@@ -6,8 +6,8 @@ import lasagne
 from lasagne.layers import SliceLayer
 from lasagne.nonlinearities import elu, identity
 from audio_sheet_retrieval.utils.monitoring import print_architecture
-from lasagne_extensions.layers.cca import LengthNormLayer, LearnedCCALayer
-from lasagne_extensions.layers.cca import CCALayer
+from .lasagne_extensions.layers.cca import LengthNormLayer, LearnedCCALayer
+from .lasagne_extensions.layers.cca import CCALayer
 
 try:
     from lasagne.layers import dnn
@@ -151,7 +151,7 @@ build_model = get_build_model(weight_tno=WEIGHT_TNO, alpha=ALPHA, dim_latent=DIM
 
 def objectives():
     """ Compile objectives """
-    from objectives import get_contrastive_cos_loss
+    from .objectives import get_contrastive_cos_loss
     return get_contrastive_cos_loss(1.0 - WEIGHT_TNO, GAMMA)
 
 

@@ -6,7 +6,7 @@ import numpy as np
 import theano
 import lasagne
 
-from utils.batch_iterators import batch_compute2
+from audio_sheet_retrieval.utils.batch_iterators import batch_compute2
 
 
 class RetrievalWrapper(object):

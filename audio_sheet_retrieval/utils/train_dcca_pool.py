@@ -10,16 +10,17 @@ import copy
 import time
 import itertools
 import numpy as np
-import cPickle as pickle
+import six
+import six.moves.cPickle as pickle
 import matplotlib.pyplot as plt
 
 import lasagne
 import theano
 import theano.tensor as T
 
-from plotting import BColors
-from batch_iterators import threaded_generator_from_iterator
-from cca import CCA
+from .plotting import BColors
+from .batch_iterators import threaded_generator_from_iterator
+from .cca import CCA
 
 # init color printer
 col = BColors()
@@ -43,7 +44,7 @@ def eval_retrieval(lv1_cca, lv2_cca):
     ranks = []
     aps = []
     hit_rates = {1: 0, 5: 0, 10: 0, 25: 0}
-    for i in xrange(n_v1):
+    for i in range(n_v1):
 
         # fix i for multiple indices
         i_fixed = np.floor_divide(i, h)
@@ -397,7 +398,7 @@ def fit(layers, data, objectives,
 
                 # dump net parameters during training
                 if dump_file is not None:
-                    with open(dump_file, 'w') as fp:
+                    with open(dump_file, 'wb') as fp:
                         pickle.dump(best_model, fp, protocol=-1)
 
             last_improvement += 1
@@ -485,7 +486,7 @@ def fit(layers, data, objectives,
             exp_res['map_val'] = maps_va
             exp_res['evals_tr'] = evals_evol_tr
 
-            with open(log_file, 'w') as fp:
+            with open(log_file, 'wb') as fp:
                 pickle.dump(exp_res, fp, protocol=-1)
 
             # --- early stopping: preserve best model ---

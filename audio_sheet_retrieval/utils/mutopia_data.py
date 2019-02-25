@@ -6,8 +6,8 @@ import yaml
 from tqdm import tqdm
 
 from audio_sheet_retrieval.config.settings import DATA_ROOT_MSMD
-from data_pools import prepare_piece_data, AudioScoreRetrievalPool, AUGMENT, NO_AUGMENT
-from data_pools import SPEC_CONTEXT, SHEET_CONTEXT, SYSTEM_HEIGHT
+from .data_pools import prepare_piece_data, AudioScoreRetrievalPool, AUGMENT, NO_AUGMENT
+from .data_pools import SPEC_CONTEXT, SHEET_CONTEXT, SYSTEM_HEIGHT
 
 
 def load_split(split_file):

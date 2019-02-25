@@ -1,23 +1,26 @@
 name: asr
 dependencies:
-- python=2.7.14
-- matplotlib=1.5.3
-- pandas=0.18.1
-- numpy=1.11
-- scipy=0.19.1
+- python=3.6
+- matplotlib
+- pandas
+- numpy
+- scipy
 - jupyter
 - mkl-service
-- theano=1.0.1
+- theano
+- pygpu
 - scikit-learn
+- cython
 - pip:
   - tqdm==4.19.2
   - seaborn==0.7.1
-  - opencv_python==3.1.0.3
+  - opencv_python==3.1.0.4
   - git+https://github.com/Lasagne/Lasagne.git
   - madmom==0.15.1
   - omr==0.0.73
   - PyYAML==3.12
   - scikit-image
-  - music21
   - muscima==0.10.0
   - dtw==1.3
+  - git+https://github.com/cuthbertLab/music21.git@v4.1.0
+

@@ -53,7 +53,7 @@ if __name__ == '__main__':
     dump_file = os.path.join(out_path, dump_file_name)
     print("\n")
     print("Loading model parameters from:", dump_file)
-    with open(dump_file, 'r') as fp:
+    with open(dump_file, 'rb') as fp:
          params = pickle.load(fp)
     lasagne.layers.set_all_param_values(layers, params)
 

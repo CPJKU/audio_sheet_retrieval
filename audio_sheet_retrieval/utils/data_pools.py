@@ -6,11 +6,12 @@ from scipy.interpolate import interp1d
 
 import matplotlib.pyplot as plt
 
-
-from msmd.midi_parser import notes_to_onsets, FPS
-
-from msmd.data_model.piece import Piece
-from msmd.alignments import align_score_to_performance
+try:
+    from msmd.midi_parser import notes_to_onsets, FPS
+    from msmd.data_model.piece import Piece
+    from msmd.alignments import align_score_to_performance
+except ImportError:
+    raise ImportError('Could not import msmd dataset package. Please install!')
 
 
 SHEET_CONTEXT = 200

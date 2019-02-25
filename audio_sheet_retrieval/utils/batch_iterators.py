@@ -7,7 +7,7 @@ Created on Thu May 21 12:40:17 2015
 
 from __future__ import print_function
 import sys
-
+import six
 import numpy as np
 from multiprocessing import Pool
 
@@ -30,7 +30,7 @@ def batch_compute1(X, compute, batch_size, verbose=False, prepare=None):
     n_batches = int(np.ceil(float(n_samples) / batch_size))
     
     # iterate batches
-    for i_batch in xrange(n_batches):
+    for i_batch in six.moves.range(n_batches):
 
         if verbose:
             print("Processing batch %d / %d" % (i_batch + 1, n_batches), end='\r')
@@ -79,7 +79,7 @@ def batch_compute2(X1, X2, compute, batch_size, prepare1=None, prepare2=None):
     n_batches = int(np.ceil(float(n_samples) / batch_size))
 
     # iterate batches
-    for i_batch in xrange(n_batches):
+    for i_batch in six.moves.range(n_batches):
 
         # extract batch
         start_idx = i_batch * batch_size
@@ -115,17 +115,16 @@ def threaded_generator(generator, num_cached=10):
     """
     Threaded generator
     """
-    import Queue
-    queue = Queue.Queue(maxsize=num_cached)
-    queue = Queue.Queue(maxsize=num_cached)
+    from six.moves import queue
+    my_queue = queue.Queue(maxsize=num_cached)
     end_marker = object()
 
     # define producer
     def producer():
         for item in generator:
             #item = np.array(item)  # if needed, create a copy here
-            queue.put(item)
-        queue.put(end_marker)
+            my_queue.put(item)
+        my_queue.put(end_marker)
 
     # start producer
     import threading
@@ -134,11 +133,11 @@ def threaded_generator(generator, num_cached=10):
     thread.start()
 
     # run as consumer
-    item = queue.get()
+    item = my_queue.get()
     while item is not end_marker:
         yield item
-        queue.task_done()
-        item = queue.get()
+        my_queue.task_done()
+        item = my_queue.get()
 
 
 def generator_from_iterator(iterator):
@@ -194,7 +193,7 @@ class MultiviewPoolIteratorUnsupervised(object):
         # compute current epoch index
         idx_epoch = np.mod(self.epoch_counter, self.n_epochs)
 
-        for i in range((n_samples + bs - 1) / bs):
+        for i in range(int((n_samples + bs - 1) / bs)):
 
             i_start = i * bs + idx_epoch * self.k_samples
             i_stop = (i + 1) * bs + idx_epoch * self.k_samples

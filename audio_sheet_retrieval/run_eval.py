@@ -5,6 +5,7 @@ from __future__ import print_function
 
 import os
 import yaml
+import six
 try:
     import cPickle as pickle
 except ImportError:
@@ -71,7 +72,7 @@ if __name__ == '__main__':
 
     print("\n")
     print("Loading model parameters from:", dump_file)
-    with open(dump_file, 'r') as fp:
+    with open(dump_file, 'rb') as fp:
          params = pickle.load(fp)
     if isinstance(params[0], list):
         # old redundant dump
@@ -130,7 +131,7 @@ if __name__ == '__main__':
 
         # plt.show(block=True)
 
-        for i in xrange(n_test):
+        for i in six.moves.range(n_test):
             sorted_idx = np.argsort(dists[i])
             rank = np.nonzero(sorted_idx == i)[0][0]
 
@@ -148,7 +149,7 @@ if __name__ == '__main__':
             plt.title("Rank: %d" % rank, fontsize=22)
             plt.axis('off')
 
-            for p in xrange(8):
+            for p in six.moves.range(8):
                 plt.subplot(2, 5, p + 3)
                 plt.imshow(1.0 - X1[sorted_idx[p], 0], cmap=plt.cm.gray)
                 plt.title(p, fontsize=22)
@@ -175,8 +176,9 @@ if __name__ == '__main__':
 
     # report hit rates
     recall_at_k = dict()
+
     print("\nHit Rates:")
-    for key in np.sort(hit_rates.keys()):
+    for key in np.sort([*hit_rates.keys()]):
         recall_at_k[key] = float(100 * hit_rates[key]) / n_test
         pk = recall_at_k[key] / key
         print("Top %02d: %.3f (%d) %.3f" % (key, recall_at_k[key], hit_rates[key], pk))

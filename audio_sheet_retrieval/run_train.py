@@ -4,6 +4,7 @@
 from __future__ import print_function
 
 import os
+import importlib
 import pickle
 import lasagne
 import argparse
@@ -21,7 +22,8 @@ def select_model(model_path):
 
     model_str = os.path.basename(model_path)
     model_str = model_str.split('.py')[0]
-    exec('from models import ' + model_str + ' as model')
+
+    model = importlib.import_module('models.' + model_str)
 
     from utils.train_dcca_pool import fit
 

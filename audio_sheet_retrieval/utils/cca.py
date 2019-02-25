@@ -424,8 +424,8 @@ class CCA(object):
             raise NotImplementedError("Selected method for CCA not implemented!")
 
         if verbose:
-            print "\nCorrelation-Coeffs:  ", np.around(Coeffs, 3)
-            print "Canonical-Correlation:", np.sum(Coeffs) / H1.shape[1]
+            print("\nCorrelation-Coeffs:  ", np.around(Coeffs, 3))
+            print("Canonical-Correlation:", np.sum(Coeffs) / H1.shape[1])
 
         return Coeffs
 
