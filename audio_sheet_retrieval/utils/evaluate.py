@@ -1,4 +1,4 @@
-
+import six
 import pickle
 import argparse
 import numpy as np
@@ -35,7 +35,7 @@ if __name__ == '__main__':
             exp_name = result.split('/')[-2]
             exp_ext = result.split('/')[-1].split('.pkl')[0].split('results')[1]
             exp_name += exp_ext
-            with open(result, 'r') as fp:
+            with open(result, 'rb') as fp:
                 exp_res = pickle.load(fp)
                 all_results[exp_name] = exp_res
 
@@ -45,7 +45,7 @@ if __name__ == '__main__':
         ax = plt.subplot(111)
         plt.subplots_adjust(bottom=0.15, left=0.15, right=0.9, top=0.95)
 
-        for i, (exp_name, exp_res) in enumerate(all_results.iteritems()):
+        for i, (exp_name, exp_res) in enumerate(six.iteritems(all_results)):
 
             if args.acc:
 
@@ -110,11 +110,11 @@ if __name__ == '__main__':
 
         if args.acc:
             plt.ylabel("Accuracy", fontsize=20)
-            plt.legend(loc="best", fontsize=18).draggable()
+            plt.legend(loc="best", fontsize=18).set_draggable(True)
             plt.ylim([args.ymin, 102])
         else:
             plt.ylabel(label, fontsize=20)
-            plt.legend(loc="best", fontsize=20).draggable()
+            plt.legend(loc="best", fontsize=20).set_draggable(True)
 
         if args.ymin is not None and args.ymax is not None:
             plt.ylim([args.ymin, args.ymax])
@@ -123,7 +123,7 @@ if __name__ == '__main__':
             plt.xlim([0, args.max_epoch])
 
         plt.xlabel("Epoch", fontsize=20)
-        plt.grid('on')
+        plt.grid(True)
 
         ax.tick_params(axis='x', labelsize=18)
         ax.tick_params(axis='y', labelsize=18)
