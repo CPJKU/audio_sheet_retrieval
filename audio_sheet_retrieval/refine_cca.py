@@ -107,5 +107,5 @@ if __name__ == '__main__':
     cca_layer.V.set_value(cca.V.astype(np.float32))
 
     print("Dumping refined model...")
-    with open(dump_file, 'w') as fp:
+    with open(dump_file, 'wb') as fp:
         pickle.dump(lasagne.layers.get_all_param_values(layers), fp, protocol=-1)
