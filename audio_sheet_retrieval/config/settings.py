@@ -2,8 +2,8 @@
 import os
 
 # set paths
-EXP_ROOT = "/home/matthias/experiments/audio_sheet_retrieval/"
-DATA_ROOT_MSMD = '/media/matthias/Data/msmd_aug/'
+EXP_ROOT = "/home/stefanb/dev/audio_sheet_retrieval/experiments"
+DATA_ROOT_MSMD = '/home/stefanb/dev/msmd_aug/'
 
 # get hostname
 hostname = os.uname()[1]
