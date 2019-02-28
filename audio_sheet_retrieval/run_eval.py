@@ -178,7 +178,7 @@ if __name__ == '__main__':
     recall_at_k = dict()
 
     print("\nHit Rates:")
-    for key in np.sort([*hit_rates.keys()]):
+    for key in np.sort(list(hit_rates.keys())):
         recall_at_k[key] = float(100 * hit_rates[key]) / n_test
         pk = recall_at_k[key] / key
         print("Top %02d: %.3f (%d) %.3f" % (key, recall_at_k[key], hit_rates[key], pk))
