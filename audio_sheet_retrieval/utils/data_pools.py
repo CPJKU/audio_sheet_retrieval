@@ -417,7 +417,10 @@ def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT, requir
         performance = piece.load_performance(performance_key, require_audio=require_audio)
 
         # running the alignment procedure
-        alignment = align_score_to_performance(score, performance)
+        # alignment = align_score_to_performance(score, performance)
+
+        # load existing alignment from mung file
+        alignment = piece.load_alignment(performance_key)
 
         # note events
         note_events = performance.load_note_events()
