@@ -440,7 +440,7 @@ def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT, requir
         return un_wrapped_image, spectrograms, onset_to_coord_maps
 
 
-def load_audio_score_retrieval():
+def load_audio_score_retrieval_test():
     """
     Load alignment data
     """
@@ -469,7 +469,7 @@ def load_audio_score_retrieval():
 if __name__ == "__main__":
     """ main """
 
-    pool = load_audio_score_retrieval()
+    pool = load_audio_score_retrieval_test()
 
     for i in range(100):
         sheet, spec = pool[i:i+1]
