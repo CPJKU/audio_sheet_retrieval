@@ -6,8 +6,8 @@ import yaml
 from tqdm import tqdm
 
 from audio_sheet_retrieval.config.settings import DATA_ROOT_MSMD
-from .data_pools import prepare_piece_data, AudioScoreRetrievalPool, AUGMENT, NO_AUGMENT
-from .data_pools import SPEC_CONTEXT, SHEET_CONTEXT, SYSTEM_HEIGHT
+from audio_sheet_retrieval.utils.data_pools import prepare_piece_data, AudioScoreRetrievalPool, AUGMENT, NO_AUGMENT
+from audio_sheet_retrieval.utils.data_pools import SPEC_CONTEXT, SHEET_CONTEXT, SYSTEM_HEIGHT
 
 
 def load_split(split_file):
@@ -31,6 +31,8 @@ def load_piece_list(piece_names, aug_config=NO_AUGMENT):
         try:
             image, specs, o2c_maps = prepare_piece_data(DATA_ROOT_MSMD, piece_name,
                                                         aug_config=aug_config, require_audio=False)
+        except KeyboardInterrupt:
+            break
         except:
             print("Problems with loading piece %s" % piece_name)
             print(sys.exc_info()[0])
@@ -98,45 +100,53 @@ def load_audio_score_retrieval(split_file, config_file=None, test_only=False):
     return dict(train=tr_pool, valid=va_pool, test=te_pool, train_tag="")
 
 
-if __name__ == "__main__":
-    """ main """
-    import matplotlib.pyplot as plt
-    from audio_sheet_retrieval.models.mutopia_ccal_cont_rsz import prepare
-
-    def train_batch_iterator(batch_size=1):
-        """ Compile batch iterator """
-        from audio_sheet_retrieval.utils.batch_iterators import MultiviewPoolIteratorUnsupervised
-        batch_iterator = MultiviewPoolIteratorUnsupervised(batch_size=batch_size, prepare=None, k_samples=None)
-        return batch_iterator
-
-    data = load_audio_score_retrieval(split_file="/home/matthias/cp/src/msmd/msmd/splits/all_split.yaml",
-                                      config_file="/home/matthias/cp/src/audio_sheet_retrieval/audio_sheet_retrieval/exp_configs/mutopia_no_aug.yaml",
+def main():
+    data = load_audio_score_retrieval(split_file="/media/rk1/home/stefanb/dev/msmd/msmd/splits/all_split.yaml",
+                                      config_file="/media/rk1/home/stefanb/dev/audio_sheet_retrieval/audio_sheet_retrieval/exp_configs/mutopia_no_aug.yaml",
                                       test_only=True)
 
-    bi = train_batch_iterator(batch_size=5)
 
-    iterator = bi(data["test"])
+if __name__ == "__main__":
+    """ main """
+    # import matplotlib.pyplot as plt
+    # from audio_sheet_retrieval.models.mutopia_ccal_cont_rsz import prepare
+    #
+    # def train_batch_iterator(batch_size=1):
+    #     """ Compile batch iterator """
+    #     from audio_sheet_retrieval.utils.batch_iterators import MultiviewPoolIteratorUnsupervised
+    #     batch_iterator = MultiviewPoolIteratorUnsupervised(batch_size=batch_size, prepare=None, k_samples=None)
+    #     return batch_iterator
 
-    # show some train samples
-    import time
+    import cProfile
+    profile_file = "profile.dmp"
+    print("trying to profile...")
+    print("output to: ", profile_file)
+    cProfile.run('main()', profile_file)
 
-    for epoch in xrange(1000):
-        start = time.time()
-        for i, (sheet, spec) in enumerate(iterator):
-
-            plt.figure()
-            plt.clf()
-
-            plt.subplot(1, 2, 1)
-            plt.imshow(sheet[0, 0], cmap="gray")
-            plt.ylabel(sheet[0, 0].shape[0])
-            plt.xlabel(sheet[0, 0].shape[1])
-            # plt.colorbar()
-
-            plt.subplot(1, 2, 2)
-            plt.imshow(spec[0, 0], cmap="gray_r", origin="lower")
-            plt.ylabel(spec[0, 0].shape[0])
-            plt.xlabel(spec[0, 0].shape[1])
-            # plt.colorbar()
-
-            plt.show()
+    # bi = train_batch_iterator(batch_size=5)
+    #
+    # iterator = bi(data["test"])
+    #
+    # # show some train samples
+    # import time
+    #
+    # for epoch in xrange(1000):
+    #     start = time.time()
+    #     for i, (sheet, spec) in enumerate(iterator):
+    #
+    #         plt.figure()
+    #         plt.clf()
+    #
+    #         plt.subplot(1, 2, 1)
+    #         plt.imshow(sheet[0, 0], cmap="gray")
+    #         plt.ylabel(sheet[0, 0].shape[0])
+    #         plt.xlabel(sheet[0, 0].shape[1])
+    #         # plt.colorbar()
+    #
+    #         plt.subplot(1, 2, 2)
+    #         plt.imshow(spec[0, 0], cmap="gray_r", origin="lower")
+    #         plt.ylabel(spec[0, 0].shape[0])
+    #         plt.xlabel(spec[0, 0].shape[1])
+    #         # plt.colorbar()
+    #
+    #         plt.show()
