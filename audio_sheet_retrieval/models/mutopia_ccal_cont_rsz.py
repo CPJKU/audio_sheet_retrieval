@@ -17,8 +17,6 @@ try:
 except:
     from lasagne.layers import Conv2DLayer, MaxPool2DLayer, batch_norm
 
-from audio_sheet_retrieval.utils.mutopia_data import SPEC_CONTEXT
-
 
 INI_LEARNING_RATE = 0.002
 REFINEMENT_STEPS = 5
@@ -29,8 +27,6 @@ MAX_EPOCHS = 1000
 PATIENCE = 30
 X_TENSOR_TYPE = T.tensor4
 Y_TENSOR_TYPE = T.ivector
-INPUT_SHAPE_1 = [1, 160, 200]
-INPUT_SHAPE_2 = [1, 92, SPEC_CONTEXT]
 
 DIM_LATENT = 32
 
@@ -61,12 +57,12 @@ def conv_bn(net_in, num_filters, nonlinearity):
 def get_build_model(weight_tno, alpha, dim_latent, use_ccal):
     """ Get model function """
 
-    def model(show_model):
+    def model(input_shape_1, input_shape_2, show_model):
         """ Compile net architecture """
 
         # --- input layers ---
-        l_view1 = lasagne.layers.InputLayer(shape=(None, INPUT_SHAPE_1[0], INPUT_SHAPE_1[1] // 2, INPUT_SHAPE_1[2] // 2))
-        l_view2 = lasagne.layers.InputLayer(shape=(None, INPUT_SHAPE_2[0], INPUT_SHAPE_2[1], INPUT_SHAPE_2[2]))
+        l_view1 = lasagne.layers.InputLayer(shape=(None, input_shape_1[0], input_shape_1[1] // 2, input_shape_1[2] // 2))
+        l_view2 = lasagne.layers.InputLayer(shape=(None, input_shape_2[0], input_shape_2[1], input_shape_2[2]))
 
         net1 = l_view1
         net2 = l_view2
@@ -202,4 +198,3 @@ def train_batch_iterator(batch_size=BATCH_SIZE):
     from audio_sheet_retrieval.utils.batch_iterators import MultiviewPoolIteratorUnsupervised
     batch_iterator = MultiviewPoolIteratorUnsupervised(batch_size=batch_size, prepare=prepare, k_samples=10000)
     return batch_iterator
-

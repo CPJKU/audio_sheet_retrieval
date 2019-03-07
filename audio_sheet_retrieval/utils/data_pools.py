@@ -1,4 +1,3 @@
-
 from __future__ import print_function
 
 import numpy as np
@@ -13,11 +12,6 @@ try:
 except ImportError:
     raise ImportError('Could not import msmd dataset package. Please install!')
 
-
-SHEET_CONTEXT = 200
-SYSTEM_HEIGHT = 160
-SPEC_CONTEXT = 42
-SPEC_BINS = 92
 
 NO_AUGMENT = dict()
 NO_AUGMENT['system_translation'] = 0
@@ -38,14 +32,27 @@ for key in NO_AUGMENT.keys():
 class AudioScoreRetrievalPool(object):
 
     def __init__(self, images, specs, o2c_maps,
-                 spec_context=SPEC_CONTEXT, sheet_context=SHEET_CONTEXT, staff_height=SYSTEM_HEIGHT,
+                 spec_context=None, spec_bins=None, sheet_context=None, staff_height=None,
                  data_augmentation=None, shuffle=True):
+
+        if spec_context is None:
+            spec_context = 42
+
+        if spec_bins is None:
+            spec_bins = 92
+
+        if sheet_context is None:
+            sheet_context = 200
+
+        if staff_height is None:
+            staff_height = 160
 
         self.images = images
         self.specs = specs
         self.o2c_maps = o2c_maps
 
         self.spec_context = spec_context
+        self.spec_bins = spec_bins
         self.sheet_context = sheet_context
         self.staff_height = staff_height
 

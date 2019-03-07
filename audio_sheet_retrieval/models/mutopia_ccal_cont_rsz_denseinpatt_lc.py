@@ -19,20 +19,16 @@ try:
 except:
     from lasagne.layers import Conv2DLayer, MaxPool2DLayer, batch_norm
 
-from audio_sheet_retrieval.utils.mutopia_data import SPEC_CONTEXT
 
 INI_LEARNING_RATE = 0.002
 REFINEMENT_STEPS = 5
 LR_MULTIPLIER = 0.5
-REFINEMENT_PATIENCE = 25
 BATCH_SIZE = 100
 MOMENTUM = 0.9
 MAX_EPOCHS = 1000
 PATIENCE = 60
 X_TENSOR_TYPE = T.tensor4
 Y_TENSOR_TYPE = T.ivector
-INPUT_SHAPE_1 = [1, 160, 200]
-INPUT_SHAPE_2 = [1, 92, 4 * SPEC_CONTEXT]
 
 DIM_LATENT = 32
 
@@ -64,13 +60,12 @@ def conv_bn(net_in, num_filters, nonlinearity):
 def get_build_model(weight_tno, alpha, dim_latent, use_ccal):
     """ Get model function """
 
-    def model(show_model):
+    def model(input_shape_1, input_shape_2, show_model):
         """ Compile net architecture """
 
         # --- input layers ---
-        l_view1 = lasagne.layers.InputLayer(
-            shape=(None, INPUT_SHAPE_1[0], INPUT_SHAPE_1[1] // 2, INPUT_SHAPE_1[2] // 2))
-        l_view2 = lasagne.layers.InputLayer(shape=(None, INPUT_SHAPE_2[0], INPUT_SHAPE_2[1], INPUT_SHAPE_2[2]))
+        l_view1 = lasagne.layers.InputLayer(shape=(None, input_shape_1[0], input_shape_1[1] // 2, input_shape_1[2] // 2))
+        l_view2 = lasagne.layers.InputLayer(shape=(None, input_shape_2[0], input_shape_2[1], input_shape_2[2]))
 
         net1 = l_view1
         net2 = l_view2
@@ -118,7 +113,7 @@ def get_build_model(weight_tno, alpha, dim_latent, use_ccal):
         attention = MaxPool2DLayer(attention, pool_size=2)
 
         attention = Conv2DLayer(attention, num_filters=INPUT_SHAPE_2[-1], filter_size=1, pad=0, W=init(),
-                                nonlinearity=identity)
+                                nonlinearity=identity, name="attention")
         attention = lasagne.layers.GlobalPoolLayer(attention)
         attention = NonlinearityLayer(attention, nonlinearity=softmax, name="attention")
         attention = ReshapeLayer(attention, (-1, 1, 1, attention.output_shape[-1]))

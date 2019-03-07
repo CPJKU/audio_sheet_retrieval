@@ -40,8 +40,14 @@ if __name__ == '__main__':
     if not hasattr(model, 'prepare'):
         model.prepare = None
 
+    # select data
+    print("\nLoading data...")
+    data = select_data(args.data, args.train_split, args.config, args.seed)
+
     print("Building network %s ..." % model.EXP_NAME)
-    layers = model.build_model(show_model=False)
+    layers = model.build_model(input_shape_1=[1, data['train'].staff_height, data['train'].sheet_context],
+                               input_shape_2=[1, data['train'].spec_bins, data['train'].spec_context],
+                               show_model=False)
 
     # tag parameter file
     tag = compile_tag(args.train_split, args.config)
@@ -63,10 +69,6 @@ if __name__ == '__main__':
     if not os.path.exists(out_path):
         os.mkdir(out_path)
     dump_file = os.path.join(out_path, dump_file_name)
-
-    # select data
-    print("\nLoading data...")
-    data = select_data(args.data, args.train_split, args.config, args.seed)
 
     print("\nCompiling prediction functions...")
     l_view1, l_view2, l_v1latent, l_v2latent = layers

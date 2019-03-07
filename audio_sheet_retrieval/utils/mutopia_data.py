@@ -7,7 +7,6 @@ from tqdm import tqdm
 
 from audio_sheet_retrieval.config.settings import DATA_ROOT_MSMD
 from audio_sheet_retrieval.utils.data_pools import prepare_piece_data, AudioScoreRetrievalPool, AUGMENT, NO_AUGMENT
-from audio_sheet_retrieval.utils.data_pools import SPEC_CONTEXT, SHEET_CONTEXT, SYSTEM_HEIGHT
 
 
 def load_split(split_file):
@@ -52,9 +51,10 @@ def load_audio_score_retrieval(split_file, config_file=None, test_only=False):
     """
 
     if not config_file:
-        spec_context = SPEC_CONTEXT
-        sheet_context = SHEET_CONTEXT
-        staff_height = SYSTEM_HEIGHT
+        spec_bins = None
+        spec_context = None
+        sheet_context = None
+        staff_height = None
         augment = AUGMENT
         no_augment = NO_AUGMENT
         test_augment = NO_AUGMENT.copy()
@@ -62,8 +62,9 @@ def load_audio_score_retrieval(split_file, config_file=None, test_only=False):
         with open(config_file, 'rb') as hdl:
             config = yaml.load(hdl)
         spec_context = config["SPEC_CONTEXT"]
+        spec_bins = config["SPEC_BINS"]
         sheet_context = config["SHEET_CONTEXT"]
-        staff_height = config["SYSTEM_HEIGHT"]
+        staff_height = config["STAFF_HEIGHT"]
         augment = config["AUGMENT"]
         no_augment = NO_AUGMENT
         test_augment = NO_AUGMENT.copy()
@@ -77,7 +78,8 @@ def load_audio_score_retrieval(split_file, config_file=None, test_only=False):
     if not test_only:
         tr_images, tr_specs, tr_o2c_maps = load_piece_list(split['train'], aug_config=augment)
         tr_pool = AudioScoreRetrievalPool(tr_images, tr_specs, tr_o2c_maps,
-                                          spec_context=spec_context, sheet_context=sheet_context, staff_height=staff_height,
+                                          spec_context=spec_context, spec_bins=spec_bins,
+                                          sheet_context=sheet_context, staff_height=staff_height,
                                           data_augmentation=augment, shuffle=True)
         print("Train: %d" % tr_pool.shape[0])
 
@@ -100,53 +102,53 @@ def load_audio_score_retrieval(split_file, config_file=None, test_only=False):
     return dict(train=tr_pool, valid=va_pool, test=te_pool, train_tag="")
 
 
-def main():
+if __name__ == "__main__":
+    """ main """
+    # Profiling
+    # import cProfile
+    # profile_file = "profile.dmp"
+    # print("trying to profile...")
+    # print("output to: ", profile_file)
+    # cProfile.run('main()', profile_file)
+
+    import matplotlib.pyplot as plt
+    from audio_sheet_retrieval.models.mutopia_ccal_cont_rsz import prepare
+
     data = load_audio_score_retrieval(split_file="/media/rk1/home/stefanb/dev/msmd/msmd/splits/all_split.yaml",
                                       config_file="/media/rk1/home/stefanb/dev/audio_sheet_retrieval/audio_sheet_retrieval/exp_configs/mutopia_no_aug.yaml",
                                       test_only=True)
 
+    def train_batch_iterator(batch_size=1):
+        """ Compile batch iterator """
+        from audio_sheet_retrieval.utils.batch_iterators import MultiviewPoolIteratorUnsupervised
+        batch_iterator = MultiviewPoolIteratorUnsupervised(batch_size=batch_size, prepare=None, k_samples=None)
+        return batch_iterator
 
-if __name__ == "__main__":
-    """ main """
-    # import matplotlib.pyplot as plt
-    # from audio_sheet_retrieval.models.mutopia_ccal_cont_rsz import prepare
-    #
-    # def train_batch_iterator(batch_size=1):
-    #     """ Compile batch iterator """
-    #     from audio_sheet_retrieval.utils.batch_iterators import MultiviewPoolIteratorUnsupervised
-    #     batch_iterator = MultiviewPoolIteratorUnsupervised(batch_size=batch_size, prepare=None, k_samples=None)
-    #     return batch_iterator
 
-    import cProfile
-    profile_file = "profile.dmp"
-    print("trying to profile...")
-    print("output to: ", profile_file)
-    cProfile.run('main()', profile_file)
+    bi = train_batch_iterator(batch_size=5)
 
-    # bi = train_batch_iterator(batch_size=5)
-    #
-    # iterator = bi(data["test"])
-    #
-    # # show some train samples
-    # import time
-    #
-    # for epoch in xrange(1000):
-    #     start = time.time()
-    #     for i, (sheet, spec) in enumerate(iterator):
-    #
-    #         plt.figure()
-    #         plt.clf()
-    #
-    #         plt.subplot(1, 2, 1)
-    #         plt.imshow(sheet[0, 0], cmap="gray")
-    #         plt.ylabel(sheet[0, 0].shape[0])
-    #         plt.xlabel(sheet[0, 0].shape[1])
-    #         # plt.colorbar()
-    #
-    #         plt.subplot(1, 2, 2)
-    #         plt.imshow(spec[0, 0], cmap="gray_r", origin="lower")
-    #         plt.ylabel(spec[0, 0].shape[0])
-    #         plt.xlabel(spec[0, 0].shape[1])
-    #         # plt.colorbar()
-    #
-    #         plt.show()
+    iterator = bi(data["test"])
+
+    # show some train samples
+    import time
+
+    for epoch in xrange(1000):
+        start = time.time()
+        for i, (sheet, spec) in enumerate(iterator):
+
+            plt.figure()
+            plt.clf()
+
+            plt.subplot(1, 2, 1)
+            plt.imshow(sheet[0, 0], cmap="gray")
+            plt.ylabel(sheet[0, 0].shape[0])
+            plt.xlabel(sheet[0, 0].shape[1])
+            # plt.colorbar()
+
+            plt.subplot(1, 2, 2)
+            plt.imshow(spec[0, 0], cmap="gray_r", origin="lower")
+            plt.ylabel(spec[0, 0].shape[0])
+            plt.xlabel(spec[0, 0].shape[1])
+            # plt.colorbar()
+
+            plt.show()

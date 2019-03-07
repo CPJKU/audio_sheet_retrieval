@@ -21,7 +21,6 @@ from utils.plotting import BColors
 from run_train import compile_tag, select_model
 from retrieval_wrapper import RetrievalWrapper
 from utils.data_pools import NO_AUGMENT
-from utils.data_pools import SPEC_CONTEXT, SPEC_BINS, SHEET_CONTEXT, SYSTEM_HEIGHT
 
 from msmd.midi_parser import processor, SAMPLE_RATE, FRAME_SIZE, FPS
 
@@ -60,7 +59,7 @@ def resize_image(img, rsz=1.0):
 class AudioSheetServer(object):
     """ Audio to Sheet Music Retrieval Server """
 
-    def __init__(self):
+    def __init__(self, spec_shape, sheet_shape):
         """ constructor """
 
         self.sheet_snippet_codes = None
@@ -77,8 +76,8 @@ class AudioSheetServer(object):
         self.snippet_shape = None
         self.excerpt_shape = None
 
-        self.spec_shape = (SPEC_BINS, SPEC_CONTEXT)
-        self.sheet_shape = (SYSTEM_HEIGHT, SHEET_CONTEXT)
+        self.spec_shape = spec_shape
+        self.sheet_shape = sheet_shape
 
     def run(self, spec=None, top_k=5, n_candidates=5, running_frames=None, gui=True, target_piece=None):
         """
@@ -590,7 +589,8 @@ if __name__ == '__main__':
     synth = config["TEST_SYNTH"]
 
     # initialize model
-    a2s_srv = AudioSheetServer()
+    a2s_srv = AudioSheetServer(spec_shape=(config['SPEC_BINS'], config['SPEC_CONTEXT']),
+                               sheet_shape=(config['STAFF_HEIGHT'], config['SHEET_CONTEXT']))
 
     # load tr/va/te split
     split = load_split(args.train_split)

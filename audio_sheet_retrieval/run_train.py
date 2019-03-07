@@ -86,14 +86,17 @@ if __name__ == '__main__':
     print("Experimental Tag:", tag)
 
     # set model dump file
-    out_path = os.path.join(os.path.join(EXP_ROOT), model.EXP_NAME)
+    config_str = os.path.splitext(os.path.split(args.config)[1])[0]
+    out_path = os.path.join(os.path.join(EXP_ROOT), model.EXP_NAME + '_' + config_str)
     dump_file = 'params.pkl' if tag is None else 'params_%s.pkl' % tag
     dump_file = os.path.join(out_path, dump_file)
     log_file = 'results.pkl' if tag is None else 'results_%s.pkl' % tag
     log_file = os.path.join(out_path, log_file)
 
     print("\nBuilding network...")
-    layers = model.build_model(show_model=args.show_architecture)
+    layers = model.build_model(input_shape_1=[1, data['train'].staff_height, data['train'].sheet_context],
+                               input_shape_2=[1, data['train'].spec_bins, data['train'].spec_context],
+                               show_model=args.show_architecture)
 
     if args.resume:
         print("\n")

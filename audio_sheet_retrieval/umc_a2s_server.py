@@ -11,7 +11,6 @@ import seaborn as sns
 from config.settings import EXP_ROOT
 from utils.plotting import BColors
 from run_train import compile_tag, select_model
-from utils.data_pools import SYSTEM_HEIGHT
 from audio_sheet_server import AudioSheetServer
 
 from msmd.midi_parser import processor, SAMPLE_RATE, FRAME_SIZE, FPS
@@ -51,7 +50,8 @@ def spec_gen(Spec):
         yield Spec[:, i:i+1]
 
 
-def load_umc_sheets(data_dir="/home/matthias/Data/umc_mozart", require_performance=False):
+def load_umc_sheets(data_dir="/home/matthias/Data/umc_mozart", require_performance=False
+                    staff_height=None):
     """ load unwarpped sheets """
     import glob
     import cv2
@@ -100,7 +100,7 @@ def load_umc_sheets(data_dir="/home/matthias/Data/umc_mozart", require_performan
             print("No sheet available!!!")
             continue
 
-        unwrapped_sheet = np.zeros((SYSTEM_HEIGHT, 0), dtype=np.uint8)
+        unwrapped_sheet = np.zeros((staff_height, 0), dtype=np.uint8)
         system_problem = False
         for i_page, page_path in enumerate(page_paths):
             kept_pages += 1
@@ -136,21 +136,21 @@ def load_umc_sheets(data_dir="/home/matthias/Data/umc_mozart", require_performan
             # unwrap sheet
             for system in page_systems:
 
-                r0 = int(np.mean([system[0, 0], system[2, 0]])) - SYSTEM_HEIGHT // 2
-                r1 = r0 + SYSTEM_HEIGHT
+                r0 = int(np.mean([system[0, 0], system[2, 0]])) - staff_height // 2
+                r1 = r0 + staff_height
                 c0 = int(system[0, 1])
                 c1 = int(system[1, 1])
 
                 # fix row slice coordinates
                 r0 = max(0, r0)
                 r1 = min(r1, I.shape[0])
-                r0 = max(r0, r1 - SYSTEM_HEIGHT)
+                r0 = max(r0, r1 - staff_height)
 
                 staff_img = I[r0:r1, c0:c1].astype(np.uint8)
 
-                if staff_img.shape[0] < SYSTEM_HEIGHT:
-                    to_pad = SYSTEM_HEIGHT - staff_img.shape[0]
-                    if to_pad > (0.1 * SYSTEM_HEIGHT):
+                if staff_img.shape[0] < staff_height:
+                    to_pad = staff_height - staff_img.shape[0]
+                    if to_pad > (0.1 * staff_height):
                         print("Problem in system padding!!!")
                         continue
                     staff_img = np.pad(staff_img, ((0, to_pad), (0, 0)), mode="edge")
@@ -188,8 +188,12 @@ if __name__ == '__main__':
     parser.add_argument('--data_dir', help='path to evaluation data.', type=str, default=None)
     args = parser.parse_args()
 
+    with open(args.config, 'rb') as hdl:
+        config = yaml.load(hdl)
+
     # define test pieces
-    te_pieces, piece_paths, unwrapped_sheets = load_umc_sheets(args.data_dir, require_performance=True)
+    te_pieces, piece_paths, unwrapped_sheets = load_umc_sheets(args.data_dir, require_performance=True,
+                                                               staff_height=config['STAFF_HEIGHT'])
     dset = os.path.basename(args.data_dir)
 
     # tag parameter file
