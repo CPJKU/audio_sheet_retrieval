@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import theano.tensor as T
 
 import lasagne
@@ -19,12 +17,12 @@ except:
 
 
 INI_LEARNING_RATE = 0.002
-REFINEMENT_STEPS = 10
+REFINEMENT_STEPS = 5
 LR_MULTIPLIER = 0.5
 BATCH_SIZE = 100
 MOMENTUM = 0.9
 MAX_EPOCHS = 1000
-PATIENCE = 15
+PATIENCE = 60
 X_TENSOR_TYPE = T.tensor4
 Y_TENSOR_TYPE = T.ivector
 
@@ -68,7 +66,7 @@ def get_build_model(weight_tno, alpha, dim_latent, use_ccal):
         net2 = l_view2
 
         # --- feed forward part view 1 ---
-        num_filters_1 = 12
+        num_filters_1 = 24
 
         net1 = conv_bn(net1, num_filters_1, nonlin)
         net1 = conv_bn(net1, num_filters_1, nonlin)
@@ -87,10 +85,7 @@ def get_build_model(weight_tno, alpha, dim_latent, use_ccal):
         net1 = MaxPool2DLayer(net1, pool_size=2)
 
         net1 = Conv2DLayer(net1, num_filters=dim_latent, filter_size=1, pad=0, W=init(), nonlinearity=identity)
-        net1 = batch_norm(net1)
-
-        net1 = lasagne.layers.GlobalPoolLayer(net1)
-        l_v1latent = lasagne.layers.FlattenLayer(net1, name='Flatten')
+        l_v1latent = lasagne.layers.DenseLayer(net1, num_units=dim_latent, W=init(), nonlinearity=identity)
 
         # --- feed forward part view 2 ---
         num_filters_2 = num_filters_1
@@ -114,8 +109,7 @@ def get_build_model(weight_tno, alpha, dim_latent, use_ccal):
         net2 = Conv2DLayer(net2, num_filters=dim_latent, filter_size=1, pad=0, W=init(), nonlinearity=identity)
         net2 = batch_norm(net2)
 
-        net2 = lasagne.layers.GlobalPoolLayer(net2)
-        l_v2latent = lasagne.layers.FlattenLayer(net2, name='Flatten')
+        l_v2latent = lasagne.layers.DenseLayer(net2, num_units=dim_latent, W=init(), nonlinearity=identity)
 
         # --- multi modality part ---
 
@@ -172,13 +166,13 @@ def prepare(x, y=None):
     x = x.astype(np.float32)
     x /= 255
 
-    # # resize sheet image
-    # sheet_shape = [x.shape[2] // 2, x.shape[3] // 2]
-    # new_shape = [x.shape[0], x.shape[1], ] + sheet_shape
-    # x_new = np.zeros(new_shape, np.float32)
-    # for i in range(len(x)):
-    #     x_new[i, 0] = cv2.resize(x[i, 0], (sheet_shape[1], sheet_shape[0]))
-    # x = x_new
+    # resize sheet image
+    sheet_shape = [x.shape[2] // 2, x.shape[3] // 2]
+    new_shape = [x.shape[0], x.shape[1], ] + sheet_shape
+    x_new = np.zeros(new_shape, np.float32)
+    for i in range(len(x)):
+        x_new[i, 0] = cv2.resize(x[i, 0], (sheet_shape[1], sheet_shape[0]))
+    x = x_new
 
     if y is None:
         return x
@@ -198,3 +192,8 @@ def train_batch_iterator(batch_size=BATCH_SIZE):
     from audio_sheet_retrieval.utils.batch_iterators import MultiviewPoolIteratorUnsupervised
     batch_iterator = MultiviewPoolIteratorUnsupervised(batch_size=batch_size, prepare=prepare, k_samples=10000)
     return batch_iterator
+
+
+if __name__ == "__main__":
+    build_model = get_build_model(WEIGHT_TNO, ALPHA, DIM_LATENT, USE_CCAL)
+    l_view1, l_view2, l_v1latent, l_v2latent = build_model(True)

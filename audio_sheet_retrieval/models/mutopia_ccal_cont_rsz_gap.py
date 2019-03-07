@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import theano.tensor as T
 
 import lasagne

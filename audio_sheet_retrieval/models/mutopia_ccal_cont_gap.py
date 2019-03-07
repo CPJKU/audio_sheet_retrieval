@@ -1,37 +1,30 @@
-#!/usr/bin/env python
-
 import theano.tensor as T
 
 import lasagne
-from lasagne.layers import SliceLayer, ReshapeLayer, NonlinearityLayer
-from lasagne.nonlinearities import elu, identity, softmax
+from lasagne.layers import SliceLayer
+from lasagne.nonlinearities import elu, identity
 from audio_sheet_retrieval.utils.monitoring import print_architecture
 from .lasagne_extensions.layers.cca import LengthNormLayer, LearnedCCALayer
 from .lasagne_extensions.layers.cca import CCALayer
-from .lasagne_extensions.layers.attention import ApplyAttentionLayer
 
 try:
     from lasagne.layers import dnn
-
     Conv2DLayer = dnn.Conv2DDNNLayer
     MaxPool2DLayer = dnn.MaxPool2DDNNLayer
     batch_norm = dnn.batch_norm_dnn
 except:
     from lasagne.layers import Conv2DLayer, MaxPool2DLayer, batch_norm
 
-from audio_sheet_retrieval.utils.mutopia_data import SPEC_CONTEXT
 
 INI_LEARNING_RATE = 0.002
-REFINEMENT_STEPS = 5
+REFINEMENT_STEPS = 10
 LR_MULTIPLIER = 0.5
 BATCH_SIZE = 100
 MOMENTUM = 0.9
 MAX_EPOCHS = 1000
-PATIENCE = 60
+PATIENCE = 15
 X_TENSOR_TYPE = T.tensor4
 Y_TENSOR_TYPE = T.ivector
-INPUT_SHAPE_1 = [1, 160, 200]
-INPUT_SHAPE_2 = [1, 92, 2 * SPEC_CONTEXT]
 
 DIM_LATENT = 32
 
@@ -50,7 +43,6 @@ ALPHA = 1.0
 WEIGHT_TNO = 0.0
 USE_CCAL = True
 GAMMA = 0.7
-WEIGHT_ATTENTION = 0.0
 
 
 def conv_bn(net_in, num_filters, nonlinearity):
@@ -74,7 +66,7 @@ def get_build_model(weight_tno, alpha, dim_latent, use_ccal):
         net2 = l_view2
 
         # --- feed forward part view 1 ---
-        num_filters_1 = 24
+        num_filters_1 = 12
 
         net1 = conv_bn(net1, num_filters_1, nonlin)
         net1 = conv_bn(net1, num_filters_1, nonlin)
@@ -93,39 +85,13 @@ def get_build_model(weight_tno, alpha, dim_latent, use_ccal):
         net1 = MaxPool2DLayer(net1, pool_size=2)
 
         net1 = Conv2DLayer(net1, num_filters=dim_latent, filter_size=1, pad=0, W=init(), nonlinearity=identity)
-        l_v1latent = lasagne.layers.DenseLayer(net1, num_units=dim_latent, W=init(), nonlinearity=identity)
+        net1 = batch_norm(net1)
 
-        # --- attention layers ---
-        num_filters_2 = num_filters_1
-
-        attention = l_view2
-        attention = conv_bn(attention, num_filters_2, nonlin)
-        attention = conv_bn(attention, num_filters_2, nonlin)
-        attention = MaxPool2DLayer(attention, pool_size=2)
-
-        attention = conv_bn(attention, 2 * num_filters_2, nonlin)
-        attention = conv_bn(attention, 2 * num_filters_2, nonlin)
-        attention = MaxPool2DLayer(attention, pool_size=2)
-
-        attention = conv_bn(attention, 4 * num_filters_2, nonlin)
-        attention = conv_bn(attention, 4 * num_filters_2, nonlin)
-        attention = MaxPool2DLayer(attention, pool_size=2)
-
-        attention = conv_bn(attention, 4 * num_filters_2, nonlin)
-        attention = conv_bn(attention, 4 * num_filters_2, nonlin)
-        attention = MaxPool2DLayer(attention, pool_size=2)
-
-        attention = Conv2DLayer(attention, num_filters=INPUT_SHAPE_2[-1], filter_size=1, pad=0, W=init(),
-                                nonlinearity=identity, name="attention")
-        attention = lasagne.layers.GlobalPoolLayer(attention)
-        attention = NonlinearityLayer(attention, nonlinearity=softmax, name="attention")
-        attention = ReshapeLayer(attention, (-1, 1, 1, attention.output_shape[-1]))
+        net1 = lasagne.layers.GlobalPoolLayer(net1)
+        l_v1latent = lasagne.layers.FlattenLayer(net1, name='Flatten')
 
         # --- feed forward part view 2 ---
         num_filters_2 = num_filters_1
-
-        # apply attention mechanism
-        net2 = ApplyAttentionLayer([net2, attention], scale=net2.output_shape[-1], loss_weight=WEIGHT_ATTENTION)
 
         net2 = conv_bn(net2, num_filters_2, nonlin)
         net2 = conv_bn(net2, num_filters_2, nonlin)
@@ -146,7 +112,8 @@ def get_build_model(weight_tno, alpha, dim_latent, use_ccal):
         net2 = Conv2DLayer(net2, num_filters=dim_latent, filter_size=1, pad=0, W=init(), nonlinearity=identity)
         net2 = batch_norm(net2)
 
-        l_v2latent = lasagne.layers.DenseLayer(net2, num_units=dim_latent, W=init(), nonlinearity=identity)
+        net2 = lasagne.layers.GlobalPoolLayer(net2)
+        l_v2latent = lasagne.layers.FlattenLayer(net2, name='Flatten')
 
         # --- multi modality part ---
 
@@ -172,7 +139,6 @@ def get_build_model(weight_tno, alpha, dim_latent, use_ccal):
         return l_view1, l_view2, l_v1latent, l_v2latent
 
     return model
-
 
 build_model = get_build_model(weight_tno=WEIGHT_TNO, alpha=ALPHA, dim_latent=DIM_LATENT, use_ccal=USE_CCAL)
 
@@ -204,13 +170,13 @@ def prepare(x, y=None):
     x = x.astype(np.float32)
     x /= 255
 
-    # resize sheet image
-    sheet_shape = [x.shape[2] // 2, x.shape[3] // 2]
-    new_shape = [x.shape[0], x.shape[1], ] + sheet_shape
-    x_new = np.zeros(new_shape, np.float32)
-    for i in range(len(x)):
-        x_new[i, 0] = cv2.resize(x[i, 0], (sheet_shape[1], sheet_shape[0]))
-    x = x_new
+    # # resize sheet image
+    # sheet_shape = [x.shape[2] // 2, x.shape[3] // 2]
+    # new_shape = [x.shape[0], x.shape[1], ] + sheet_shape
+    # x_new = np.zeros(new_shape, np.float32)
+    # for i in range(len(x)):
+    #     x_new[i, 0] = cv2.resize(x[i, 0], (sheet_shape[1], sheet_shape[0]))
+    # x = x_new
 
     if y is None:
         return x
@@ -230,8 +196,3 @@ def train_batch_iterator(batch_size=BATCH_SIZE):
     from audio_sheet_retrieval.utils.batch_iterators import MultiviewPoolIteratorUnsupervised
     batch_iterator = MultiviewPoolIteratorUnsupervised(batch_size=batch_size, prepare=prepare, k_samples=10000)
     return batch_iterator
-
-
-if __name__ == "__main__":
-    build_model = get_build_model(WEIGHT_TNO, ALPHA, DIM_LATENT, USE_CCAL)
-    l_view1, l_view2, l_v1latent, l_v2latent = build_model(True)
