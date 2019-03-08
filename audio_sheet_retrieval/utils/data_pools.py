@@ -2,8 +2,9 @@ from __future__ import print_function
 
 import numpy as np
 from scipy.interpolate import interp1d
-
 import matplotlib.pyplot as plt
+
+from madmom.audio.signal import Signal, FramedSignal
 
 try:
     from msmd.midi_parser import notes_to_onsets, FPS
@@ -33,7 +34,7 @@ class AudioScoreRetrievalPool(object):
 
     def __init__(self, images, specs, o2c_maps,
                  spec_context=None, spec_bins=None, sheet_context=None, staff_height=None,
-                 data_augmentation=None, shuffle=True):
+                 data_augmentation=None, shuffle=True, raw_audio=False):
 
         if spec_context is None:
             spec_context = 42
@@ -61,7 +62,7 @@ class AudioScoreRetrievalPool(object):
 
         self.shape = None
         self.sheet_dim = [self.staff_height, self.sheet_context]
-        self.spec_dim = [self.specs[0][0].shape[0], self.spec_context]
+        self.audio_dim = [self.specs[0][0].shape[0], self.spec_context]
 
         if self.data_augmentation['interpolate'] > 0:
             self.interpolate()
@@ -220,7 +221,7 @@ class AudioScoreRetrievalPool(object):
 
         # collect train entities
         sheet_batch = np.zeros((len(batch_entities), 1, self.sheet_dim[0], self.sheet_context), dtype=np.float32)
-        spec_batch = np.zeros((len(batch_entities), 1, self.spec_dim[0], self.spec_context), dtype=np.float32)
+        spec_batch = np.zeros((len(batch_entities), 1, self.audio_dim[0], self.spec_context), dtype=np.float32)
         for i_entity, (i_sheet, i_spec, i_onset) in enumerate(batch_entities):
 
             # get sliding window train item
@@ -232,7 +233,7 @@ class AudioScoreRetrievalPool(object):
             # collect batch data
             sheet_batch[i_entity, 0, :, :] = snippet
             spec_batch[i_entity, 0, :, :] = excerpt
-
+        print(spec_batch.shape)
         return [sheet_batch, spec_batch]
 
 
@@ -374,7 +375,8 @@ def unwrap_sheet_image(image, system_mungos, mdict, window_top=100, window_botto
     return un_wrapped_image, un_wrapped_coords
 
 
-def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT, require_audio=True, load_midi_matrix=False):
+def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT,
+    raw_audio=False, require_audio=True, load_midi_matrix=False):
     """
 
     :param collection_dir:
@@ -405,7 +407,7 @@ def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT, requir
     un_wrapped_image, un_wrapped_coords = unwrap_sheet_image(image, system_mungos, mdict)
 
     # load performances
-    spectrograms = []
+    audio_repr = []
     midi_matrices = []
     onset_to_coord_maps = []
 
@@ -432,9 +434,18 @@ def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT, requir
         # note events
         note_events = performance.load_note_events()
 
-        # load spectrogram
-        spec = performance.load_spectrogram()
-        spectrograms.append(spec)
+        if raw_audio:
+            # load raw audio
+            SAMPLE_RATE = 22050
+            # FRAME_SIZE = 59042
+            # FPS = 20
+            sig = Signal(performance.audio, num_channels=1, sample_rate=SAMPLE_RATE, dtype=np.float32)
+            # frames = FramedSignal(sig, frame_size=FRAME_SIZE, hop_size=int(FRAME_SIZE / 2))
+            audio_repr.append(np.atleast_2d(sig))
+        else:
+            # load spectrogram
+            spec = performance.load_spectrogram()
+            audio_repr.append(spec)
 
         # compute onset to coordinate mapping
         onset_to_coord = onset_to_coordinates(alignment, un_wrapped_coords, note_events)
@@ -445,9 +456,9 @@ def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT, requir
             midi_matrices.append(midi)
 
     if load_midi_matrix:
-        return un_wrapped_image, spectrograms, onset_to_coord_maps, midi_matrices
+        return un_wrapped_image, audio_repr, onset_to_coord_maps, midi_matrices
     else:
-        return un_wrapped_image, spectrograms, onset_to_coord_maps
+        return un_wrapped_image, audio_repr, onset_to_coord_maps
 
 
 def load_audio_score_retrieval_test():

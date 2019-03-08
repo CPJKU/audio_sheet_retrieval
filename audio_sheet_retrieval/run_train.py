@@ -86,8 +86,7 @@ if __name__ == '__main__':
     print("Experimental Tag:", tag)
 
     # set model dump file
-    config_str = os.path.splitext(os.path.split(args.config)[1])[0]
-    out_path = os.path.join(os.path.join(EXP_ROOT), model.EXP_NAME + '_' + config_str)
+    out_path = os.path.join(os.path.join(EXP_ROOT), model.EXP_NAME)
     dump_file = 'params.pkl' if tag is None else 'params_%s.pkl' % tag
     dump_file = os.path.join(out_path, dump_file)
     log_file = 'results.pkl' if tag is None else 'results_%s.pkl' % tag

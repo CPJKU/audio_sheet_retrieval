@@ -40,7 +40,7 @@ if __name__ == '__main__':
     parser.add_argument('--model', help='select model to evaluate.')
     parser.add_argument('--data', help='select evaluation data.', type=str)
     parser.add_argument('--show', help='show evaluation plots.', action='store_true')
-    parser.add_argument('--n_test', help='number of test samples used.', type=int, default=None)
+    parser.add_argument('--n_test', help='number of test samples used.', type=int, default=2000)
     parser.add_argument('--V2_to_V1', help='query direction.', action='store_true')
     parser.add_argument('--estimate_UV', help='load re-estimated U and V.', action='store_true')
     parser.add_argument('--max_dim', help='maximum dimension of retrieval space.', type=int, default=None)
