@@ -3,6 +3,7 @@ STAFF_HEIGHT: 160
 SPEC_CONTEXT: 84
 SPEC_BINS: 92
 RAW_AUDIO: False
+FPS: 20
 
 AUGMENT: {
 'system_translation': 5,

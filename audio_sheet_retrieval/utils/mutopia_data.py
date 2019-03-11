@@ -17,7 +17,7 @@ def load_split(split_file):
     return split
 
 
-def load_piece_list(piece_names, raw_audio=False, aug_config=NO_AUGMENT):
+def load_piece_list(piece_names, raw_audio=False, aug_config=NO_AUGMENT, fps=20):
     """
     Collect piece data
     """
@@ -29,7 +29,8 @@ def load_piece_list(piece_names, raw_audio=False, aug_config=NO_AUGMENT):
 
         try:
             image, specs, o2c_maps = prepare_piece_data(DATA_ROOT_MSMD, piece_name, raw_audio=raw_audio,
-                                                        aug_config=aug_config, require_audio=raw_audio)
+                                                        aug_config=aug_config, require_audio=raw_audio,
+                                                        fps=fps)
         except KeyboardInterrupt:
             break
         except:
@@ -53,6 +54,7 @@ def load_audio_score_retrieval(split_file, config_file=None, test_only=False):
     if not config_file:
         spec_bins = None
         spec_context = None
+        fps = 20
         sheet_context = None
         staff_height = None
         augment = AUGMENT
@@ -64,6 +66,7 @@ def load_audio_score_retrieval(split_file, config_file=None, test_only=False):
             config = yaml.load(hdl)
         spec_context = config["SPEC_CONTEXT"]
         spec_bins = config["SPEC_BINS"]
+        fps = config["FPS"]
         sheet_context = config["SHEET_CONTEXT"]
         staff_height = config["STAFF_HEIGHT"]
         augment = config["AUGMENT"]
@@ -78,14 +81,16 @@ def load_audio_score_retrieval(split_file, config_file=None, test_only=False):
 
     # initialize data pools
     if not test_only:
-        tr_images, tr_specs, tr_o2c_maps = load_piece_list(split['train'], aug_config=augment, raw_audio=raw_audio)
+        tr_images, tr_specs, tr_o2c_maps = load_piece_list(split['train'], aug_config=augment,
+                                                           raw_audio=raw_audio, fps=fps)
         tr_pool = AudioScoreRetrievalPool(tr_images, tr_specs, tr_o2c_maps,
                                           spec_context=spec_context, spec_bins=spec_bins,
                                           sheet_context=sheet_context, staff_height=staff_height,
                                           data_augmentation=augment, shuffle=True, raw_audio=raw_audio)
         print("Train: %d" % tr_pool.shape[0])
 
-        va_images, va_specs, va_o2c_maps = load_piece_list(split['valid'], aug_config=no_augment, raw_audio=raw_audio)
+        va_images, va_specs, va_o2c_maps = load_piece_list(split['valid'], aug_config=no_augment,
+                                                           raw_audio=raw_audio, fps=fps)
         va_pool = AudioScoreRetrievalPool(va_images, va_specs, va_o2c_maps,
                                           spec_context=spec_context, sheet_context=sheet_context, staff_height=staff_height,
                                           data_augmentation=no_augment, shuffle=False, raw_audio=raw_audio)
@@ -95,7 +100,8 @@ def load_audio_score_retrieval(split_file, config_file=None, test_only=False):
     else:
         tr_pool = va_pool = None
 
-    te_images, te_specs, te_o2c_maps = load_piece_list(split['test'], aug_config=test_augment, raw_audio=raw_audio)
+    te_images, te_specs, te_o2c_maps = load_piece_list(split['test'], aug_config=test_augment,
+                                                       raw_audio=raw_audio, fps=fps)
     te_pool = AudioScoreRetrievalPool(te_images, te_specs, te_o2c_maps,
                                       spec_context=spec_context, sheet_context=sheet_context, staff_height=staff_height,
                                       data_augmentation=no_augment, shuffle=False, raw_audio=raw_audio)
@@ -116,16 +122,20 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     RAW_AUDIO = True
 
+    if RAW_AUDIO:
+        config_file = '../exp_configs/mutopia_no_aug_raw.yaml'
+    else:
+        config_file = '../exp_configs/mutopia_no_aug.yaml'
+
     data = load_audio_score_retrieval(split_file="/media/rk1/home/stefanb/dev/msmd/msmd/splits/test_split.yaml",
-                                      config_file="/media/rk1/home/stefanb/dev/audio_sheet_retrieval/audio_sheet_retrieval/exp_configs/mutopia_no_aug.yaml",
-                                      test_only=True, raw_audio=RAW_AUDIO)
+                                      config_file=config_file,
+                                      test_only=True)
 
     def train_batch_iterator(batch_size=1):
         """ Compile batch iterator """
         from audio_sheet_retrieval.utils.batch_iterators import MultiviewPoolIteratorUnsupervised
         batch_iterator = MultiviewPoolIteratorUnsupervised(batch_size=batch_size, prepare=None, k_samples=None)
         return batch_iterator
-
 
     bi = train_batch_iterator(batch_size=5)
 
@@ -147,7 +157,10 @@ if __name__ == "__main__":
             plt.subplot(1, 2, 2)
 
             if RAW_AUDIO:
-                plt.plot(audio_repr[0, 0, 0])
+                from msmd.midi_parser import extract_spectrogram
+                spec = extract_spectrogram(audio_repr[0, 0, 0])
+                # plt.plot(audio_repr[0, 0, 0])
+                plt.imshow(spec, cmap="gray_r", origin="lower")
             else:
                 plt.imshow(audio_repr[0, 0], cmap="gray_r", origin="lower")
             plt.ylabel(audio_repr[0, 0].shape[0])

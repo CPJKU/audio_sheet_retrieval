@@ -181,6 +181,7 @@ class MultiviewPoolIteratorUnsupervised(object):
         self.pool = pool
         if self.k_samples is None:
             self.k_samples = self.pool.shape[0]
+
         self.n_batches = self.k_samples // self.batch_size
         self.n_epochs = max(1, self.pool.shape[0] // self.k_samples)
 

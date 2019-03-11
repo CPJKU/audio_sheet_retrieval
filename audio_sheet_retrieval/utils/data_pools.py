@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from madmom.audio.signal import Signal, FramedSignal
 
 try:
-    from msmd.midi_parser import notes_to_onsets, FPS
+    from msmd.midi_parser import notes_to_onsets
     from msmd.data_model.piece import Piece
     from msmd.alignments import align_score_to_performance
 except ImportError:
@@ -106,18 +106,17 @@ class AudioScoreRetrievalPool(object):
 
             # iterate spectrograms
             for i_spec, spec in enumerate(self.specs[i_sheet]):
-
                 # iterate onsets in sheet
                 for i_onset in range(len(self.o2c_maps[i_sheet][i_spec])):
-
                     onset = self.o2c_maps[i_sheet][i_spec][i_onset, 0]
                     o_start = onset - self.spec_context // 2
                     o_stop = o_start + self.spec_context
 
                     coord = self.o2c_maps[i_sheet][i_spec][i_onset, 1]
                     c_start = coord - self.sheet_context // 2
-                    c_stop = o_start + self.sheet_context
+                    c_stop = c_start + self.sheet_context
 
+                    # only select samples which lie in the valid borders
                     if o_start >= 0 and o_stop < spec.shape[1]\
                             and c_start >= 0 and c_stop < sheet.shape[1]:
                         cur_entities = np.asarray([i_sheet, i_spec, i_onset])
@@ -233,11 +232,11 @@ class AudioScoreRetrievalPool(object):
             # collect batch data
             sheet_batch[i_entity, 0, :, :] = snippet
             spec_batch[i_entity, 0, :, :] = excerpt
-        print(spec_batch.shape)
+
         return [sheet_batch, spec_batch]
 
 
-def onset_to_coordinates(alignment, mdict, note_events):
+def onset_to_coordinates(alignment, mdict, note_events, fps):
     """
     Compute onset to coordinate mapping
     """
@@ -249,7 +248,7 @@ def onset_to_coordinates(alignment, mdict, note_events):
         m, e = mdict[m_objid], note_events[e_idx]
 
         # compute onset frame
-        onset_frame = notes_to_onsets([e], dt=1.0 / FPS)
+        onset_frame = notes_to_onsets([e], dt=1.0 / fps)
 
         # get note coodinates
         cy, cx = m.middle
@@ -376,7 +375,8 @@ def unwrap_sheet_image(image, system_mungos, mdict, window_top=100, window_botto
 
 
 def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT,
-    raw_audio=False, require_audio=True, load_midi_matrix=False):
+                       raw_audio=False, require_audio=True, load_midi_matrix=False,
+                       fps=20):
     """
 
     :param collection_dir:
@@ -448,7 +448,7 @@ def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT,
             audio_repr.append(spec)
 
         # compute onset to coordinate mapping
-        onset_to_coord = onset_to_coordinates(alignment, un_wrapped_coords, note_events)
+        onset_to_coord = onset_to_coordinates(alignment, un_wrapped_coords, note_events, fps=fps)
         onset_to_coord_maps.append(onset_to_coord)
 
         if load_midi_matrix:

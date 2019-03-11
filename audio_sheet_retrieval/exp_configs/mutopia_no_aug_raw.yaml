@@ -6,13 +6,13 @@ RAW_AUDIO: True
 FPS: 22050
 
 AUGMENT: {
-'system_translation': 5,
-'sheet_scaling': [0.95, 1.05],
-'onset_translation': 1,
+'system_translation': 0,
+'sheet_scaling': [1.00, 1.00],
+'onset_translation': 0,
 'spec_padding': 0,
 'interpolate': -1,
-'synths': ['acoustic_piano_imis_1', 'ElectricPiano', 'YamahaGrandPiano'],
-'tempo_range': [0.90, 1.10]}
+'synths': ['ElectricPiano'],
+'tempo_range': [1.00, 1.00]}
 
 TEST_SYNTH: 'grand-piano-YDP-20160804'
 TEST_TEMPO: 1.0
