@@ -10,5 +10,5 @@
 *.pdf
 *~
 
-/audio_sheet_retrieval/config/settings.py
+audio_sheet_retrieval/config/settings.py
 /test_data
