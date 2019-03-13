@@ -63,7 +63,8 @@ However, all our models are trained exclusively on MSMD.
 
 # Preparation <a id="preparation"></a>
 Before you can start running the code make sure that all paths are configured correctly.
-In particular, you have to specify two paths in the file *audio_sheet_retrieval/config/settings.py*:
+In particular, you have to specify two paths in the file *audio_sheet_retrieval/config/settings.py*.
+In *settings_sample.py* we provide an example which you can adapt and save under *settings.py*:
 ```
 # path where model folder gets created and parameters and results get dumped
 EXP_ROOT = "/home/matthias/experiments/audio_sheet_retrieval/"
