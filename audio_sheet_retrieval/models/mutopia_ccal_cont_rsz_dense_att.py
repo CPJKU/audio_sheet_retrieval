@@ -110,7 +110,7 @@ def get_build_model(weight_tno, alpha, dim_latent, use_ccal):
         attention = conv_bn(attention, 4 * num_filters_2, nonlin)
         attention = MaxPool2DLayer(attention, pool_size=2)
 
-        attention = Conv2DLayer(attention, num_filters=INPUT_SHAPE_2[-1], filter_size=1, pad=0, W=init(),
+        attention = Conv2DLayer(attention, num_filters=input_shape_2[-1], filter_size=1, pad=0, W=init(),
                                 nonlinearity=identity, name="attention")
         attention = lasagne.layers.GlobalPoolLayer(attention)
         attention = NonlinearityLayer(attention, nonlinearity=softmax, name="attention")
