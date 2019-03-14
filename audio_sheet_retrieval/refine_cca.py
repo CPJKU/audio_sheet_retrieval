@@ -20,14 +20,12 @@ import lasagne
 import theano
 import numpy as np
 
-from config.settings import EXP_ROOT
-from run_train import select_model, select_data, compile_tag
-
-from utils.batch_iterators import batch_compute1, batch_compute2
-
-from utils.cca import CCA
-from models.lasagne_extensions.layers.cca import CCALayer as CCALayer1
-from models.lasagne_extensions.layers.cca_dep import CCALayer as CCALayer2
+from audio_sheet_retrieval.config.settings import EXP_ROOT
+from audio_sheet_retrieval.run_train import select_model, select_data, compile_tag
+from audio_sheet_retrieval.utils.batch_iterators import batch_compute1
+from audio_sheet_retrieval.utils.cca import CCA
+from audio_sheet_retrieval.models.lasagne_extensions.layers.cca import CCALayer as CCALayer1
+from audio_sheet_retrieval.models.lasagne_extensions.layers.cca_dep import CCALayer as CCALayer2
 
 
 if __name__ == '__main__':

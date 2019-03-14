@@ -9,11 +9,11 @@ import pickle
 import lasagne
 import argparse
 
-from config.settings import EXP_ROOT
-from utils import mutopia_data
+from audio_sheet_retrieval.config.settings import EXP_ROOT
+from audio_sheet_retrieval.utils import mutopia_data
 
 # init color printer
-from utils.plotting import BColors
+from audio_sheet_retrieval.utils.plotting import BColors
 col = BColors()
 
 
@@ -25,18 +25,18 @@ def select_model(model_path):
 
     model = importlib.import_module('models.' + model_str)
 
-    from utils.train_dcca_pool import fit
+    from audio_sheet_retrieval.utils.train_dcca_pool import fit
 
     model.EXP_NAME = model_str
     return model, fit
 
 
-def select_data(data_name, split_file, config_file, seed=23, test_only=False):
+def select_data(data_name, split_file, config_file, seed=23, test_only=False, piece_name=None):
     """ select train data """
 
     if str(data_name) == "mutopia":
         data = mutopia_data.load_audio_score_retrieval(split_file=split_file, config_file=config_file,
-                                                       test_only=test_only)
+                                                       test_only=test_only, piece_name=piece_name)
     else:
         pass
 
