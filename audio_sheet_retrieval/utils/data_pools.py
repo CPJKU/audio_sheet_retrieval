@@ -32,7 +32,7 @@ for key in NO_AUGMENT.keys():
 
 class AudioScoreRetrievalPool(object):
 
-    def __init__(self, images, specs, o2c_maps,
+    def __init__(self, images, specs, o2c_maps, audio_pathes,
                  spec_context=None, spec_bins=None, sheet_context=None, staff_height=None,
                  data_augmentation=None, shuffle=True, raw_audio=False):
 
@@ -51,6 +51,7 @@ class AudioScoreRetrievalPool(object):
         self.images = images
         self.specs = specs
         self.o2c_maps = o2c_maps
+        self.audio_pathes = audio_pathes
 
         self.spec_context = spec_context
         self.spec_bins = spec_bins
@@ -424,12 +425,18 @@ def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT,
 
         # load current performance
         performance = piece.load_performance(performance_key, require_audio=require_audio)
+        path_audio = performance.audio
 
         # running the alignment procedure
         # alignment = align_score_to_performance(score, performance)
 
         # load existing alignment from mung file
         alignment = piece.load_alignment(performance_key)
+
+        try:
+            assert len(alignment) > 0
+        except AssertionError:
+            print('{}: No alignment in Mung file. Please check your MSMD data.'.format(performance_key))
 
         # note events
         note_events = performance.load_note_events()
@@ -456,9 +463,9 @@ def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT,
             midi_matrices.append(midi)
 
     if load_midi_matrix:
-        return un_wrapped_image, audio_repr, onset_to_coord_maps, midi_matrices
+        return un_wrapped_image, audio_repr, onset_to_coord_maps, midi_matrices, path_audio
     else:
-        return un_wrapped_image, audio_repr, onset_to_coord_maps
+        return un_wrapped_image, audio_repr, onset_to_coord_maps, path_audio
 
 
 def load_audio_score_retrieval_test():

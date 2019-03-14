@@ -24,13 +24,15 @@ def load_piece_list(piece_names, raw_audio=False, aug_config=NO_AUGMENT, fps=20)
     all_images = []
     all_specs = []
     all_o2c_maps = []
+    all_pathes_audio = []
+
     for ip in tqdm(range(len(piece_names)), ncols=70):
         piece_name = piece_names[ip]
 
         try:
-            image, specs, o2c_maps = prepare_piece_data(DATA_ROOT_MSMD, piece_name, raw_audio=raw_audio,
-                                                        aug_config=aug_config, require_audio=raw_audio,
-                                                        fps=fps)
+            image, specs, o2c_maps, path_audio = prepare_piece_data(DATA_ROOT_MSMD, piece_name, raw_audio=raw_audio,
+                                                                    aug_config=aug_config, require_audio=raw_audio,
+                                                                    fps=fps)
         except KeyboardInterrupt:
             break
         except:
@@ -42,11 +44,12 @@ def load_piece_list(piece_names, raw_audio=False, aug_config=NO_AUGMENT, fps=20)
         all_images.append(image)
         all_specs.append(specs)
         all_o2c_maps.append(o2c_maps)
+        all_pathes_audio.append(path_audio)
 
-    return all_images, all_specs, all_o2c_maps
+    return all_images, all_specs, all_o2c_maps, all_pathes_audio
 
 
-def load_audio_score_retrieval(split_file, config_file=None, test_only=False):
+def load_audio_score_retrieval(split_file, config_file=None, test_only=False, piece_name=None):
     """
     Load alignment data
     """
@@ -81,17 +84,17 @@ def load_audio_score_retrieval(split_file, config_file=None, test_only=False):
 
     # initialize data pools
     if not test_only:
-        tr_images, tr_specs, tr_o2c_maps = load_piece_list(split['train'], aug_config=augment,
-                                                           raw_audio=raw_audio, fps=fps)
-        tr_pool = AudioScoreRetrievalPool(tr_images, tr_specs, tr_o2c_maps,
+        tr_images, tr_specs, tr_o2c_maps, tr_audio_pathes = load_piece_list(split['train'], aug_config=augment,
+                                                                            raw_audio=raw_audio, fps=fps)
+        tr_pool = AudioScoreRetrievalPool(tr_images, tr_specs, tr_o2c_maps, tr_audio_pathes,
                                           spec_context=spec_context, spec_bins=spec_bins,
                                           sheet_context=sheet_context, staff_height=staff_height,
                                           data_augmentation=augment, shuffle=True, raw_audio=raw_audio)
         print("Train: %d" % tr_pool.shape[0])
 
-        va_images, va_specs, va_o2c_maps = load_piece_list(split['valid'], aug_config=no_augment,
-                                                           raw_audio=raw_audio, fps=fps)
-        va_pool = AudioScoreRetrievalPool(va_images, va_specs, va_o2c_maps,
+        va_images, va_specs, va_o2c_maps, va_audio_pathes = load_piece_list(split['valid'], aug_config=no_augment,
+                                                                            raw_audio=raw_audio, fps=fps)
+        va_pool = AudioScoreRetrievalPool(va_images, va_specs, va_o2c_maps, va_audio_pathes,
                                           spec_context=spec_context, sheet_context=sheet_context, staff_height=staff_height,
                                           data_augmentation=no_augment, shuffle=False, raw_audio=raw_audio)
         va_pool.reset_batch_generator()
@@ -100,9 +103,12 @@ def load_audio_score_retrieval(split_file, config_file=None, test_only=False):
     else:
         tr_pool = va_pool = None
 
-    te_images, te_specs, te_o2c_maps = load_piece_list(split['test'], aug_config=test_augment,
-                                                       raw_audio=raw_audio, fps=fps)
-    te_pool = AudioScoreRetrievalPool(te_images, te_specs, te_o2c_maps,
+    if piece_name is not None and test_only:
+        split['test'] = [piece_name, ]
+
+    te_images, te_specs, te_o2c_maps, te_audio_pathes = load_piece_list(split['test'], aug_config=test_augment,
+                                                                        raw_audio=raw_audio, fps=fps)
+    te_pool = AudioScoreRetrievalPool(te_images, te_specs, te_o2c_maps, te_audio_pathes,
                                       spec_context=spec_context, sheet_context=sheet_context, staff_height=staff_height,
                                       data_augmentation=no_augment, shuffle=False, raw_audio=raw_audio)
     print("Test: %d" % te_pool.shape[0])
