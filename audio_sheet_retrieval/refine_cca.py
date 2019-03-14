@@ -1,4 +1,13 @@
+"""
+Take an existing model and refine the CCA-projection on the train set.
+Since the CCA-layer only observes mini-batches during training,
+the refinement on a larger number of samples helps.
 
+Example Call:
+    python refine_cca.py --model models/mutopia_ccal_cont_rsz_dense_att.py \
+    --data mutopia --train_split ../../msmd/msmd/splits/all_split.yaml\
+    --config exp_configs/mutopia_full_aug_lc.yaml --n_train 25000
+"""
 from __future__ import print_function
 
 import os
@@ -28,7 +37,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train model.')
     parser.add_argument('--model', help='model parameters for evaluation.', default="flickr30")
     parser.add_argument('--data', help='select evaluation data.', type=str, default="flickr30")
-    parser.add_argument('--n_train', help='number of train samples used for projection.', type=int, default=1000)
+    parser.add_argument('--n_train', help='number of train samples used for projection.', type=int, default=25000)
     parser.add_argument('--seed', help='query direction.', type=int, default=23)
     parser.add_argument('--train_split', help='path to train split file.', type=str, default=None)
     parser.add_argument('--config', help='path to experiment config file.', type=str, default=None)
@@ -85,6 +94,7 @@ if __name__ == '__main__':
             l_v2_cca = cca_layer.input_layers[1]
             break
 
+    # get latent representations (a.k.a embeddings)
     compute_v1_latent = theano.function(inputs=input_1,
                                         outputs=lasagne.layers.get_output(l_v1_cca, deterministic=True))
     compute_v2_latent = theano.function(inputs=input_2,
