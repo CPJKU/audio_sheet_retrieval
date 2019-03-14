@@ -1,22 +1,28 @@
 name: asr
 
+channels:
+  - defaults
+  - conda-forge
+
 dependencies:
-- python=3.6
+- python=3.6.7
 - matplotlib=3.0.2
 - pandas=0.24.1
-- numpy=1.15
+- numpy=1.15.4
 - scipy=1.1.0
 - jupyter=1.0.0
+- mkl=2017
 - mkl-service=1.1.2
 - theano=1.0.3
 - pygpu=0.7.6
 - scikit-learn=0.20.2
 - cython=0.29.6
+- opencv=3.4.4
 
 - pip:
   - tqdm==4.31.1
   - seaborn==0.7.1
-  - opencv_python==3.1.0.4
+  - opencv_python==3.4.4.19
   - git+https://github.com/Lasagne/Lasagne.git
   - git+https://github.com/CPJKU/madmom.git@v0.16.1
   - omr==0.0.73
