@@ -4,8 +4,8 @@ import lasagne
 from lasagne.layers import SliceLayer
 from lasagne.nonlinearities import elu, identity
 from audio_sheet_retrieval.utils.monitoring import print_architecture
-from .lasagne_extensions.layers.cca import LengthNormLayer, LearnedCCALayer
-from .lasagne_extensions.layers.cca import CCALayer
+from audio_sheet_retrieval.models.lasagne_extensions.layers.cca import LengthNormLayer, LearnedCCALayer
+from audio_sheet_retrieval.models.lasagne_extensions.layers.cca import CCALayer
 
 try:
     from lasagne.layers import dnn

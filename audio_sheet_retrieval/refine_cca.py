@@ -19,6 +19,7 @@ import argparse
 import lasagne
 import theano
 import numpy as np
+import yaml
 
 from audio_sheet_retrieval.config.settings import EXP_ROOT
 from audio_sheet_retrieval.run_train import select_model, select_data, compile_tag
@@ -41,20 +42,24 @@ if __name__ == '__main__':
     parser.add_argument('--config', help='path to experiment config file.', type=str, default=None)
     args = parser.parse_args()
 
+    # load config
+    with open(args.config, 'rb') as hdl:
+        config = yaml.load(hdl)
+
     # select model
     model, _ = select_model(args.model)
 
     if not hasattr(model, 'prepare'):
         model.prepare = None
 
+    print("Building network %s ..." % model.EXP_NAME)
+    layers = model.build_model(input_shape_1=[1, config['STAFF_HEIGHT'], config['SHEET_CONTEXT']],
+                               input_shape_2=[1, config['SPEC_BINS'], config['SPEC_CONTEXT']],
+                               show_model=False)
+
     # select data
     print("\nLoading data...")
     data = select_data(args.data, args.train_split, args.config, args.seed)
-
-    print("Building network %s ..." % model.EXP_NAME)
-    layers = model.build_model(input_shape_1=[1, data['train'].staff_height, data['train'].sheet_context],
-                               input_shape_2=[1, data['train'].spec_bins, data['train'].spec_context],
-                               show_model=False)
 
     # tag parameter file
     tag = compile_tag(args.train_split, args.config)

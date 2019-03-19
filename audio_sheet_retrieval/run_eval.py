@@ -50,20 +50,24 @@ if __name__ == '__main__':
     parser.add_argument('--dump_results', help='dump results of current run to file.', action='store_true')
     args = parser.parse_args()
 
+    # load config
+    with open(args.config, 'rb') as hdl:
+        config = yaml.load(hdl)
+
     # select model
     model, _ = select_model(args.model)
 
     if not hasattr(model, 'prepare'):
         model.prepare = None
 
+    print("Building network %s ..." % model.EXP_NAME)
+    layers = model.build_model(input_shape_1=[1, config['STAFF_HEIGHT'], config['SHEET_CONTEXT']],
+                               input_shape_2=[1, config['SPEC_BINS'], config['SPEC_CONTEXT']],
+                               show_model=False)
+
     # select data
     print("\nLoading data...")
     data = select_data(args.data, args.train_split, args.config, args.seed, test_only=True)
-
-    print("Building network %s ..." % model.EXP_NAME)
-    layers = model.build_model(input_shape_1=[1, data['test'].staff_height, data['test'].sheet_context],
-                               input_shape_2=[1, data['test'].spec_bins, data['test'].spec_context],
-                               show_model=False)
 
     # tag parameter file
     tag = compile_tag(args.train_split, args.config)
@@ -212,5 +216,5 @@ if __name__ == '__main__':
         res_file = dump_file.replace("params_", "eval_").replace(".pkl", "_%s.yaml")
         res_file = res_file % ret_dir
 
-        with open(res_file, 'wb') as fp:
+        with open(res_file, 'w') as fp:
             yaml.dump(results, fp, default_flow_style=False)

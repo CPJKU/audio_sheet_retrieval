@@ -4,9 +4,9 @@ import lasagne
 from lasagne.layers import SliceLayer, ReshapeLayer, NonlinearityLayer
 from lasagne.nonlinearities import elu, identity, softmax
 from audio_sheet_retrieval.utils.monitoring import print_architecture
-from .lasagne_extensions.layers.cca import LengthNormLayer, LearnedCCALayer
-from .lasagne_extensions.layers.cca import CCALayer
-from .lasagne_extensions.layers.attention import ApplyAttentionLayer
+from audio_sheet_retrieval.models.lasagne_extensions.layers.cca import LengthNormLayer, LearnedCCALayer
+from audio_sheet_retrieval.models.lasagne_extensions.layers.cca import CCALayer
+from audio_sheet_retrieval.models.lasagne_extensions.layers.attention import ApplyAttentionLayer
 
 try:
     from lasagne.layers import dnn
