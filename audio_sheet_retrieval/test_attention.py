@@ -15,15 +15,19 @@ try:
 except ImportError:
     import pickle
 import argparse
+import yaml
 import lasagne
 import theano
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import pandas as pd
 
 from audio_sheet_retrieval.config.settings import EXP_ROOT
 from audio_sheet_retrieval.run_train import select_model, select_data, compile_tag
 from audio_sheet_retrieval.utils.batch_iterators import batch_compute1
+from audio_sheet_retrieval.utils.data_pools import AudioScoreRetrievalPool
+from audio_sheet_retrieval.utils.mutopia_data import load_piece_list
 
 
 def entropy(x):
@@ -46,6 +50,14 @@ if __name__ == '__main__':
     parser.add_argument('--seed', help='query direction.', type=int, default=23)
     args = parser.parse_args()
 
+    # load config
+    with open(args.config, 'rb') as hdl:
+        config = yaml.load(hdl)
+
+    # load split
+    with open(args.train_split, 'rb') as hdl:
+        split = yaml.load(hdl)
+
     # select model
     model, _ = select_model(args.model)
 
@@ -55,11 +67,14 @@ if __name__ == '__main__':
     # select data
     print('\nLoading data...')
     eval_set = 'test'
-    data = select_data(args.data, args.train_split, args.config, args.seed, test_only=True)
+    te_images, te_specs, te_o2c_maps, te_audio_pathes = load_piece_list(split[eval_set], fps=config['FPS'])
+    te_pool = AudioScoreRetrievalPool(te_images, te_specs, te_o2c_maps, te_audio_pathes,
+                                      spec_context=config['SPEC_CONTEXT'], sheet_context=config['SHEET_CONTEXT'],
+                                      staff_height=config['STAFF_HEIGHT'], shuffle=False, return_piece_names=True)
 
     print('Building network %s ...' % model.EXP_NAME)
-    layers = model.build_model(input_shape_1=[1, data[eval_set].staff_height, data[eval_set].sheet_context],
-                               input_shape_2=[1, data[eval_set].spec_bins, data[eval_set].spec_context],
+    layers = model.build_model(input_shape_1=[1, te_pool.staff_height, te_pool.sheet_context],
+                               input_shape_2=[1, te_pool.spec_bins, te_pool.spec_context],
                                show_model=False)
 
     # tag parameter file
@@ -103,9 +118,9 @@ if __name__ == '__main__':
     print('Computing attention...')
 
     # compute output on test set
-    n_test = args.n_test if args.n_test is not None else data[eval_set].shape[0]
-    indices = np.linspace(0, data[eval_set].shape[0] - 1, n_test).astype(np.int)
-    X1, X2 = data[eval_set][indices]
+    n_test = args.n_test if args.n_test is not None else te_pool.shape[0]
+    indices = np.linspace(0, te_pool.shape[0] - 1, n_test).astype(np.int)
+    X1, X2, piece_names = te_pool[indices]
 
     # compute attention
     prepare = getattr(model, 'prepare', None)
@@ -116,10 +131,22 @@ if __name__ == '__main__':
 
     # sort samples by attention
     entropies = [entropy(a) for a in att]
+
+    pieces = []
+    for cur_piece_idx, cur_piece_name in enumerate(piece_names):
+        cur_piece = dict()
+        cur_piece['name'] = cur_piece_name
+        cur_piece['entropy'] = entropies[cur_piece_idx]
+        pieces.append(cur_piece)
+
+    pieces = pd.DataFrame(pieces)
+
+    # sort by entropy
     sorted_idxs = np.argsort(entropies)
     X1 = X1[sorted_idxs]
     X2 = X2[sorted_idxs]
     att = att[sorted_idxs]
+    piece_names = [piece_names[cur_piece_idx] for cur_piece_idx in sorted_idxs.astype(int).tolist()]
 
     # apply attention to spectrogram
     X2_att = X2 * att[:, np.newaxis, np.newaxis]
@@ -134,7 +161,7 @@ if __name__ == '__main__':
     for i, idx in enumerate(idxs):
         row_idx = 2 * (i // plot_cols)
         col_idx = np.mod(i, plot_cols)
-
+        print(i, piece_names[idx])
         ax0 = plt.subplot(gs[row_idx + 0, col_idx])
         ax0.imshow(X1[idx, 0], cmap='gray')
         ax0.set_xticks([], [])
@@ -146,7 +173,7 @@ if __name__ == '__main__':
         ax1.plot(a, 'k-', linewidth=4, alpha=0.85)
         ax1.fill_between(range(att.shape[1]), 0, a, facecolors='gray', alpha=0.5)
         ax1.set_xlim([0, att.shape[1]])
-        ax1.set_ylim([0, np.max(att[idxs[0]])])
+        ax1.set_ylim([0, max_attention])
         ax1.axis('off')
 
         ax2 = plt.subplot(gs[row_idx + 2, col_idx])
