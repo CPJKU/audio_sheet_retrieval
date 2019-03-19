@@ -1,10 +1,10 @@
 from __future__ import print_function
-
+import os
 import numpy as np
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 
-from madmom.audio.signal import Signal, FramedSignal
+from madmom.audio.signal import Signal
 
 try:
     from msmd.midi_parser import notes_to_onsets
@@ -34,7 +34,7 @@ class AudioScoreRetrievalPool(object):
 
     def __init__(self, images, specs, o2c_maps, audio_pathes,
                  spec_context=None, spec_bins=None, sheet_context=None, staff_height=None,
-                 data_augmentation=None, shuffle=True, raw_audio=False):
+                 data_augmentation=None, shuffle=True, mode='training', return_piece_names=False):
 
         if spec_context is None:
             spec_context = 42
@@ -48,10 +48,15 @@ class AudioScoreRetrievalPool(object):
         if staff_height is None:
             staff_height = 160
 
+        if data_augmentation is None:
+            data_augmentation = NO_AUGMENT
+
         self.images = images
         self.specs = specs
         self.o2c_maps = o2c_maps
         self.audio_pathes = audio_pathes
+        self.mode = mode
+        self.return_piece_names = return_piece_names
 
         self.spec_context = spec_context
         self.spec_bins = spec_bins
@@ -86,7 +91,7 @@ class AudioScoreRetrievalPool(object):
                 # interpolate some extra onsets
                 step_size = self.data_augmentation['interpolate']
                 f_inter = interp1d(onsets, coords)
-                onsets = np.arange(onsets[0], onsets[-1] + 1, step_size)
+                onsets = np.arange(onsets[0], onsets[-1], step_size)
                 coords = f_inter(onsets)
 
                 # update mapping
@@ -107,6 +112,7 @@ class AudioScoreRetrievalPool(object):
 
             # iterate spectrograms
             for i_spec, spec in enumerate(self.specs[i_sheet]):
+
                 # iterate onsets in sheet
                 for i_onset in range(len(self.o2c_maps[i_sheet][i_spec])):
                     onset = self.o2c_maps[i_sheet][i_spec][i_onset, 0]
@@ -117,9 +123,14 @@ class AudioScoreRetrievalPool(object):
                     c_start = coord - self.sheet_context // 2
                     c_stop = c_start + self.sheet_context
 
-                    # only select samples which lie in the valid borders
-                    if o_start >= 0 and o_stop < spec.shape[1]\
-                            and c_start >= 0 and c_stop < sheet.shape[1]:
+                    if self.mode == 'training':
+                        # only select samples which lie in the valid borders
+                        if o_start >= 0 and o_stop < spec.shape[1]\
+                                and c_start >= 0 and c_stop < sheet.shape[1]:
+                            cur_entities = np.asarray([i_sheet, i_spec, i_onset])
+                            self.train_entities = np.vstack((self.train_entities, cur_entities))
+
+                    if self.mode == 'all':
                         cur_entities = np.asarray([i_sheet, i_spec, i_onset])
                         self.train_entities = np.vstack((self.train_entities, cur_entities))
 
@@ -133,36 +144,38 @@ class AudioScoreRetrievalPool(object):
         indices = np.random.permutation(self.shape[0])
         self.train_entities = self.train_entities[indices]
 
-    def prepare_train_image(self, i_sheet, i_spec, i_onset, shift=None):
+    def prepare_train_image(self, i_sheet, i_spec, i_onset):
         """ prepare train item """
 
         # get sheet and annotations
         sheet = self.images[i_sheet]
 
-        # get target note coodinate
+        # get target note coordinate
         target_coord = self.o2c_maps[i_sheet][i_spec][i_onset][1]
-
-        # get sub-image (with coordinate fixing)
-        c0 = max(0, target_coord - 2 * self.sheet_context)
-        c1 = min(c0 + 4 * self.sheet_context, sheet.shape[1])
-        c0 = max(0, c1 - 4 * self.sheet_context)
-        sheet = sheet[:, c0:c1]
+        x = target_coord
 
         if self.data_augmentation['sheet_scaling']:
             import cv2
             sc = self.data_augmentation['sheet_scaling']
+
+            # get sub-image (with coordinate fixing)
+            # this is done since we do not want to do the augmentation
+            # on the whole sheet image
+            c0 = max(0, target_coord - 2 * self.sheet_context)
+            c1 = min(c0 + 4 * self.sheet_context, sheet.shape[1])
+            c0 = max(0, c1 - 4 * self.sheet_context)
+            sheet = sheet[:, c0:c1]
+
             scale = (sc[1] - sc[0]) * np.random.random_sample() + sc[0]
             new_size = (int(sheet.shape[1] * scale), int(sheet.shape[0] * scale))
             sheet = cv2.resize(sheet, new_size, interpolation=cv2.INTER_NEAREST)
 
-        # target coordinate
-        x = sheet.shape[1] // 2
+            # target coordinate
+            x = sheet.shape[1] // 2
 
         # compute sliding window coordinates
-        x0 = np.max([x - self.sheet_context // 2, 0])
-        x1 = x0 + self.sheet_context
-
-        x1 = int(np.min([x1, sheet.shape[1] - 1]))
+        x0 = int(np.max([x - self.sheet_context // 2, 0]))
+        x1 = int(np.min([x0 + self.sheet_context, sheet.shape[1] - 1]))
         x0 = int(x1 - self.sheet_context)
 
         # get vertical crop
@@ -217,11 +230,14 @@ class AudioScoreRetrievalPool(object):
         # get batch
         if key.__class__ == int:
             key = slice(key, key + 1)
+
         batch_entities = self.train_entities[key]
 
         # collect train entities
         sheet_batch = np.zeros((len(batch_entities), 1, self.sheet_dim[0], self.sheet_context), dtype=np.float32)
         spec_batch = np.zeros((len(batch_entities), 1, self.audio_dim[0], self.spec_context), dtype=np.float32)
+        piece_names_batch = []
+
         for i_entity, (i_sheet, i_spec, i_onset) in enumerate(batch_entities):
 
             # get sliding window train item
@@ -230,11 +246,18 @@ class AudioScoreRetrievalPool(object):
             # get spectrogram excerpt (target note in center)
             excerpt = self.prepare_train_audio(i_sheet, i_spec, i_onset)
 
+            # get corresponding piece name
+            piece_name = os.path.basename(self.audio_pathes[i_sheet])
+
             # collect batch data
             sheet_batch[i_entity, 0, :, :] = snippet
             spec_batch[i_entity, 0, :, :] = excerpt
+            piece_names_batch.append(piece_name)
 
-        return [sheet_batch, spec_batch]
+        if self.return_piece_names:
+            return [sheet_batch, spec_batch, piece_names_batch]
+        else:
+            return [sheet_batch, spec_batch]
 
 
 def onset_to_coordinates(alignment, mdict, note_events, fps):

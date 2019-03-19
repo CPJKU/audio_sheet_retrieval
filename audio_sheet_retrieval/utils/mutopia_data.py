@@ -89,14 +89,14 @@ def load_audio_score_retrieval(split_file, config_file=None, test_only=False, pi
         tr_pool = AudioScoreRetrievalPool(tr_images, tr_specs, tr_o2c_maps, tr_audio_pathes,
                                           spec_context=spec_context, spec_bins=spec_bins,
                                           sheet_context=sheet_context, staff_height=staff_height,
-                                          data_augmentation=augment, shuffle=True, raw_audio=raw_audio)
+                                          data_augmentation=augment, shuffle=True)
         print("Train: %d" % tr_pool.shape[0])
 
         va_images, va_specs, va_o2c_maps, va_audio_pathes = load_piece_list(split['valid'], aug_config=no_augment,
                                                                             raw_audio=raw_audio, fps=fps)
         va_pool = AudioScoreRetrievalPool(va_images, va_specs, va_o2c_maps, va_audio_pathes,
                                           spec_context=spec_context, sheet_context=sheet_context, staff_height=staff_height,
-                                          data_augmentation=no_augment, shuffle=False, raw_audio=raw_audio)
+                                          data_augmentation=no_augment, shuffle=False)
         va_pool.reset_batch_generator()
         print("Valid: %d" % va_pool.shape[0])
 
@@ -110,7 +110,7 @@ def load_audio_score_retrieval(split_file, config_file=None, test_only=False, pi
                                                                         raw_audio=raw_audio, fps=fps)
     te_pool = AudioScoreRetrievalPool(te_images, te_specs, te_o2c_maps, te_audio_pathes,
                                       spec_context=spec_context, sheet_context=sheet_context, staff_height=staff_height,
-                                      data_augmentation=no_augment, shuffle=False, raw_audio=raw_audio)
+                                      data_augmentation=no_augment, shuffle=False)
     print("Test: %d" % te_pool.shape[0])
 
     return dict(train=tr_pool, valid=va_pool, test=te_pool, train_tag="")
