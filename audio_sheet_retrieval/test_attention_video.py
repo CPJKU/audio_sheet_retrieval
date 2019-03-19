@@ -16,38 +16,71 @@ except ImportError:
     import pickle
 import theano
 import numpy as np
+import matplotlib.pyplot as plt
+import cv2
 
 import lasagne
 from audio_sheet_retrieval.config.settings import EXP_ROOT
-from audio_sheet_retrieval.run_train import select_model, select_data, compile_tag
+from audio_sheet_retrieval.run_train import select_model, compile_tag
 from audio_sheet_retrieval.utils.batch_iterators import batch_compute1
-from audio_sheet_retrieval.utils.video_rendering import prepare_spec_for_render, prepare_distribution_for_render, write_video, mux_video_audio
+import audio_sheet_retrieval.utils.video_rendering as vr
+from audio_sheet_retrieval.utils.data_pools import AudioScoreRetrievalPool
+from audio_sheet_retrieval.utils.mutopia_data import load_piece_list
 
 
-def render_video(specs, atts):
+def prepare_frames(specs, scores, atts, first_onset_idx):
     output_frames = []
+    max_attention = np.max(atts)
 
     for cur_frame_idx in range(specs.shape[0]):
         cur_spec = specs[cur_frame_idx, 0]
-        cur_att = atts[cur_frame_idx]
+        cur_score = scores[cur_frame_idx, 0]
+        cur_att = atts[cur_frame_idx] / max_attention
 
-        cur_spec_bgr = prepare_spec_for_render(cur_spec, rsz_factor=4)
-        cur_att_bgr = prepare_distribution_for_render(cur_att, width_rsz_factor=4)
+        cur_score_bgr = vr.prepare_img_for_render(cur_score, rsz_factor=1)
+        cur_spec_bgr = vr.prepare_spec_for_render(cur_spec, rsz_factor=4)
+        cur_att_bgr = vr.prepare_distribution_for_render(cur_att, width_rsz_factor=4)
 
         # initialize frame
-        n_spacer = 20
-        n_rows = cur_att_bgr.shape[0] + n_spacer + cur_spec_bgr.shape[0]
-        n_cols = cur_spec_bgr.shape[1]
+        n_spacer = int(20)
+        n_rows = cur_score_bgr.shape[0] + n_spacer + cur_att_bgr.shape[0] + n_spacer + cur_spec_bgr.shape[0]
+        n_black_border = int(50)
+        n_cols = n_black_border + cur_spec_bgr.shape[1] + n_black_border
+        middle_col = int(n_cols / 2)
         cur_frame = np.ones((n_rows, n_cols, 3), dtype=np.uint8)
 
         # build frame
         cur_row_pointer = 0
-        cur_frame[:cur_att_bgr.shape[0]] = cur_att_bgr
+
+        # sheet music
+        start_idx = n_black_border + int(middle_col - cur_score_bgr.shape[1] / 2)
+        end_idx = start_idx + cur_score_bgr.shape[1]
+        cur_frame[cur_row_pointer:cur_row_pointer + cur_score_bgr.shape[0], start_idx:end_idx] = cur_score_bgr
+        cur_row_pointer += cur_score_bgr.shape[0]
+        cur_row_pointer += n_spacer
+
+        # attention
+        start_idx = n_black_border
+        end_idx = start_idx + cur_att_bgr.shape[1]
+        cur_frame[cur_row_pointer:cur_row_pointer + cur_att_bgr.shape[0], start_idx:end_idx] = cur_att_bgr
+        cv2.putText(cur_frame, '{:.2f}'.format(max_attention), (15, cur_row_pointer),
+                    fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5, color=(200, 200, 200), thickness=1)
+        cv2.putText(cur_frame, '0', (30, cur_row_pointer + cur_att_bgr.shape[0]),
+                    fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5, color=(200, 200, 200), thickness=1)
         cur_row_pointer += cur_att_bgr.shape[0]
         cur_row_pointer += n_spacer
-        cur_frame[cur_row_pointer:cur_row_pointer + cur_spec_bgr.shape[0]] = cur_spec_bgr
+
+        # spectrogram
+        start_idx = n_black_border
+        end_idx = start_idx + cur_spec_bgr.shape[1]
+        cur_frame[cur_row_pointer:cur_row_pointer + cur_spec_bgr.shape[0], start_idx:end_idx] = cur_spec_bgr
 
         output_frames.append(cur_frame)
+
+    # fade-in: fill until first onset with zero frames
+    for cur_frame_idx in range(first_onset_idx):
+        cur_frame = np.ones((n_rows, n_cols, 3), dtype=np.uint8)
+        output_frames.insert(0, cur_frame)
 
     return output_frames
 
@@ -59,8 +92,20 @@ def main(args):
 
     # load datapool with single piece
     print("\nLoading data...")
-    eval_set = 'test'
-    data = select_data(args.data, args.train_split, args.config, args.seed, test_only=True, piece_name=args.piece)
+    piece_list = [args.piece, ]
+    MY_AUGMENT = dict()
+    MY_AUGMENT['system_translation'] = 0
+    MY_AUGMENT['sheet_scaling'] = [1.00, 1.00]
+    MY_AUGMENT['onset_translation'] = 0
+    MY_AUGMENT['spec_padding'] = 0
+    MY_AUGMENT['interpolate'] = 1.0
+    MY_AUGMENT['synths'] = ['ElectricPiano']
+    MY_AUGMENT['tempo_range'] = [1.00, 1.00]
+    te_images, te_specs, te_o2c_maps, te_audio_pathes = load_piece_list(piece_list, fps=config['FPS'])
+    te_pool = AudioScoreRetrievalPool(te_images, te_specs, te_o2c_maps, te_audio_pathes,
+                                      spec_context=config['SPEC_CONTEXT'], sheet_context=config['SHEET_CONTEXT'],
+                                      staff_height=config['STAFF_HEIGHT'], data_augmentation=MY_AUGMENT,
+                                      shuffle=False, mode='all')
 
     # select model
     model, _ = select_model(args.model)
@@ -69,8 +114,8 @@ def main(args):
         model.prepare = None
 
     print("Building network %s ..." % model.EXP_NAME)
-    layers = model.build_model(input_shape_1=[1, data[eval_set].staff_height, data[eval_set].sheet_context],
-                               input_shape_2=[1, data[eval_set].spec_bins, data[eval_set].spec_context],
+    layers = model.build_model(input_shape_1=[1, te_pool.staff_height, te_pool.sheet_context],
+                               input_shape_2=[1, te_pool.spec_bins, te_pool.spec_context],
                                show_model=False)
 
     # tag parameter file
@@ -114,23 +159,29 @@ def main(args):
     print("Computing attention...")
 
     # compute output on test set
-    n_test = data[eval_set].shape[0]
-    indices = np.linspace(0, data[eval_set].shape[0] - 1, n_test).astype(np.int)
-    _, X2 = data[eval_set][indices]
+    n_test = te_pool.shape[0]
+    indices = np.arange(n_test).astype(np.int)
+    X1, X2 = te_pool[indices]
 
     # compute attention
     att = batch_compute1(X2, compute_attention, batch_size=100, verbose=False, prepare=None)
 
-    import matplotlib.pyplot as plt
-    plt.imshow(att, aspect='auto')
+    plt.imshow(att, aspect='auto', origin='lower')
+    plt.title('Attention Layer')
+    plt.xlabel('Input Attention (bins)')
+    plt.ylabel('Time (frames)')
     plt.colorbar()
-    plt.show()
+    plt.savefig('{}_attention.png'.format(args.piece))
+
     # loop over frames
-    # print('Writing video...')
-    # path_audio = data[eval_set].audio_pathes[0]
-    # output_frames = render_video(X2, att)
-    # path_video = write_video(output_frames, path_output='{}.mp4'.format(args.piece), overwrite=False)
-    # mux_video_audio(path_video, path_audio, path_output='{}_audio.mp4'.format(args.piece))
+    first_onset_idx = te_pool.o2c_maps[0][0][0, 0]
+    print('Writing video...')
+    path_audio = te_pool.audio_pathes[0]
+    output_frames = prepare_frames(X2, X1, att, first_onset_idx)
+    frame_rate = config['FPS']
+    path_video = vr.write_video(output_frames, path_output='{}.mp4'.format(args.piece),
+                                frame_rate=frame_rate, overwrite=True)
+    vr.mux_video_audio(path_video, path_audio, path_output='{}_audio.mp4'.format(args.piece))
 
 
 if __name__ == '__main__':
@@ -144,7 +195,7 @@ if __name__ == '__main__':
     parser.add_argument('--estimate_UV', help='load re-estimated U and V.', action='store_true')
     parser.add_argument('--train_split', help='path to train split file.', type=str, default=None)
     parser.add_argument('--config', help='path to experiment config file.', type=str, default=None)
-    parser.add_argument('--seed', help='query direction.', type=int, default=23)
+    parser.add_argument('--seed', help='random seed', type=int, default=23)
     args = parser.parse_args()
 
     main(args)

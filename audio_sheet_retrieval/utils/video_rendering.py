@@ -7,6 +7,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+def prepare_img_for_render(img, rsz_factor=6):
+    # resize
+    img_prep = cv2.resize(img, (img.shape[1] * rsz_factor, img.shape[0] * rsz_factor))
+
+    # get bgr version
+    img_prep = cv2.cvtColor(img_prep, cv2.COLOR_GRAY2BGR)
+
+    # convert to uint8
+    img_prep = img_prep.astype(np.uint8)
+
+    return img_prep
+
+
 def prepare_spec_for_render(spec, rsz_factor=6):
     spec_prep = np.flipud(spec)
 
