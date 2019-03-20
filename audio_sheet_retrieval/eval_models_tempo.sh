@@ -9,7 +9,7 @@
 # $3 ... train split
 # $4 ... config file
 
-for t in 0.5 0.75 1.0 1.25 1.5 1.75
+for t in 0.5 0.75 1.0 1.25 1.5 1.75 2.0
 do
     device="export THEANO_FLAGS=\"device=$1\""
 
