@@ -59,7 +59,7 @@ if __name__ == '__main__':
 
     # select data
     print("\nLoading data...")
-    data = select_data(args.data, args.train_split, args.config, args.seed)
+    data = select_data(args.data, args.train_split, config, args.seed)
 
     # tag parameter file
     tag = compile_tag(args.train_split, args.config)
