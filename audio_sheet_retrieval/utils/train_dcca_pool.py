@@ -57,7 +57,7 @@ def eval_retrieval(lv1_cca, lv2_cca):
             # get top k results
             top_k_results = sorted_idx[0:key]
 
-            # pre-processing if multible results are coorect
+            # pre-processing if multiple results are correct
             top_k_results = np.floor_divide(top_k_results, k)
 
             # check if correct item is in the top k

@@ -217,8 +217,7 @@ if __name__ == '__main__':
 
         ret_dir = "A2S" if args.V2_to_V1 else "S2A"
         res_file = dump_file.replace("params_", "eval_").replace(".pkl", "")
-        res_file = res_file + '_{}_{}.yaml'.format(ret_dir, args.tempo * 1000)
-        res_file = res_file % ret_dir
+        res_file = res_file + '_{}_{}.yaml'.format(ret_dir, int(args.test_tempo * 1000))
 
         with open(res_file, 'w') as fp:
             yaml.dump(results, fp, default_flow_style=False)
