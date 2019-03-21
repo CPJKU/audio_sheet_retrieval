@@ -16,12 +16,10 @@ import theano
 import numpy as np
 import matplotlib.pyplot as plt
 
-from config.settings import EXP_ROOT
-from run_train import select_model, select_data, compile_tag
-
-from utils.batch_iterators import batch_compute2
-
-from utils.train_dcca_pool import eval_retrieval
+from audio_sheet_retrieval.config.settings import EXP_ROOT
+from audio_sheet_retrieval.run_train import select_model, select_data, compile_tag
+from audio_sheet_retrieval.utils.batch_iterators import batch_compute2
+from audio_sheet_retrieval.utils.train_dcca_pool import eval_retrieval
 
 
 def flip_variables(v1, v2):
@@ -48,11 +46,16 @@ if __name__ == '__main__':
     parser.add_argument('--train_split', help='path to train split file.', type=str, default=None)
     parser.add_argument('--config', help='path to experiment config file.', type=str, default=None)
     parser.add_argument('--dump_results', help='dump results of current run to file.', action='store_true')
+    parser.add_argument('--test_tempo', help='select different tempo ratio for testing (overwrites exp-config).',
+                        type=float, default=1.0)
     args = parser.parse_args()
 
     # load config
     with open(args.config, 'rb') as hdl:
         config = yaml.load(hdl)
+
+    if args.test_tempo != 1.0:
+        config['TEST_TEMPO'] = args.test_tempo
 
     # select model
     model, _ = select_model(args.model)
@@ -67,7 +70,7 @@ if __name__ == '__main__':
 
     # select data
     print("\nLoading data...")
-    data = select_data(args.data, args.train_split, args.config, args.seed, test_only=True)
+    data = select_data(args.data, args.train_split, config, args.seed, test_only=True)
 
     # tag parameter file
     tag = compile_tag(args.train_split, args.config)
@@ -213,8 +216,8 @@ if __name__ == '__main__':
         results = {"map": map, 'med_rank': med_rank_te, 'recall_at_k': recall_at_k}
 
         ret_dir = "A2S" if args.V2_to_V1 else "S2A"
-        res_file = dump_file.replace("params_", "eval_").replace(".pkl", "_%s.yaml")
-        res_file = res_file % ret_dir
+        res_file = dump_file.replace("params_", "eval_").replace(".pkl", "")
+        res_file = res_file + '_{}_{}.yaml'.format(ret_dir, int(args.test_tempo * 1000))
 
         with open(res_file, 'w') as fp:
             yaml.dump(results, fp, default_flow_style=False)

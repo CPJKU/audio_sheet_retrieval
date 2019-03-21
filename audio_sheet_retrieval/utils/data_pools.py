@@ -401,12 +401,36 @@ def unwrap_sheet_image(image, system_mungos, mdict, window_top=100, window_botto
 def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT,
                        raw_audio=False, require_audio=True, load_midi_matrix=False,
                        fps=20):
+    """Load audio, sheet, and alignment data.
+
+    Parameters
+    ----------
+    collection_dir : str
+    piece_name : str
+    aug_config : dict
+        Augmentation settings
+    raw_audio : bool
+        Return raw audio instead of spectrograms.
+    require_audio : bool
+        If true, msmd checks for the respective audio files.
+    load_midi_matrix : bool
+        Load (and return) piano-roll representation of the MIDI.
+    fps : int
+        Frame rate in frames per second.
+
+    Returns
+    -------
+    un_wrapped_image :
+    audio_repr :
+    onset_to_coord_maps :
+    midi_matrices :
+        Only returned if load_midi_matrix=True.
+    path_audio : str
+        Path to audio recording.
     """
 
-    :param collection_dir:
-    :param piece_name:
-    :return:
-    """
+    if raw_audio:
+        require_audio = True
 
     # piece loading
     piece = Piece(root=collection_dir, name=piece_name)

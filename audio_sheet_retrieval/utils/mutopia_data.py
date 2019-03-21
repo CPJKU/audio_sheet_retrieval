@@ -10,6 +10,7 @@ from audio_sheet_retrieval.utils.data_pools import prepare_piece_data, AudioScor
 
 
 def load_split(split_file):
+    """Helper function to load split YAML."""
 
     with open(split_file, 'rb') as hdl:
         split = yaml.load(hdl)
@@ -35,9 +36,8 @@ def load_piece_list(piece_names, raw_audio=False, aug_config=NO_AUGMENT, fps=20)
                                                                     fps=fps)
         except KeyboardInterrupt:
             break
-        except:
-            print("Problems with loading piece %s" % piece_name)
-            print(sys.exc_info()[0])
+        except IndexError:
+            print("{}: Performance not available.".format(piece_name))
             continue
 
         # keep stuff
@@ -49,12 +49,23 @@ def load_piece_list(piece_names, raw_audio=False, aug_config=NO_AUGMENT, fps=20)
     return all_images, all_specs, all_o2c_maps, all_pathes_audio
 
 
-def load_audio_score_retrieval(split_file, config_file=None, test_only=False, piece_name=None):
-    """
-    Load alignment data
+def load_audio_score_retrieval(split_file, config=None, test_only=False, piece_name=None):
+    """Load alignment data in three AudioScoreRetrievalPools.
+
+    Paramters
+    ---------
+    split_file : str
+        Path to split file.
+    config : dict
+        Configurations for the datapools
+    test_only : boolean
+        Only create test-datapool
+    piece_name : str
+        Create test-datapool with a single piece only
+        (used for video rendering).
     """
 
-    if not config_file:
+    if not config:
         spec_bins = None
         spec_context = None
         fps = 20
@@ -65,8 +76,6 @@ def load_audio_score_retrieval(split_file, config_file=None, test_only=False, pi
         test_augment = NO_AUGMENT.copy()
         raw_audio = False
     else:
-        with open(config_file, 'rb') as hdl:
-            config = yaml.load(hdl)
         spec_context = config["SPEC_CONTEXT"]
         spec_bins = config["SPEC_BINS"]
         fps = config["FPS"]

@@ -8,6 +8,7 @@ import importlib
 import pickle
 import lasagne
 import argparse
+import yaml
 
 from audio_sheet_retrieval.config.settings import EXP_ROOT
 from audio_sheet_retrieval.utils import mutopia_data
@@ -31,11 +32,11 @@ def select_model(model_path):
     return model, fit
 
 
-def select_data(data_name, split_file, config_file, seed=23, test_only=False, piece_name=None):
+def select_data(data_name, split_file, config, seed=23, test_only=False, piece_name=None):
     """ select train data """
 
     if str(data_name) == "mutopia":
-        data = mutopia_data.load_audio_score_retrieval(split_file=split_file, config_file=config_file,
+        data = mutopia_data.load_audio_score_retrieval(split_file=split_file, config=config,
                                                        test_only=test_only, piece_name=piece_name)
     else:
         pass
@@ -65,6 +66,10 @@ if __name__ == '__main__':
     parser.add_argument('--config', help='path to experiment config file.', type=str, default=None)
     args = parser.parse_args()
 
+    # load config
+    with open(args.config, 'rb') as hdl:
+        config = yaml.load(hdl)
+
     # select model
     model, fit = select_model(args.model)
 
@@ -79,7 +84,7 @@ if __name__ == '__main__':
 
     # select data
     print("\nLoading data...")
-    data = select_data(args.data, args.train_split, args.config, args.seed)
+    data = select_data(args.data, args.train_split, config, args.seed)
 
     # tag parameter file
     tag = compile_tag(args.train_split, args.config)
