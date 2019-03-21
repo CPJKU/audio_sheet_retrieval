@@ -95,6 +95,7 @@ def load_audio_score_retrieval(split_file, config=None, test_only=False, piece_n
     if not test_only:
         tr_images, tr_specs, tr_o2c_maps, tr_audio_pathes = load_piece_list(split['train'], aug_config=augment,
                                                                             raw_audio=raw_audio, fps=fps)
+        print('Compiling train pool...')
         tr_pool = AudioScoreRetrievalPool(tr_images, tr_specs, tr_o2c_maps, tr_audio_pathes,
                                           spec_context=spec_context, spec_bins=spec_bins,
                                           sheet_context=sheet_context, staff_height=staff_height,
@@ -103,6 +104,7 @@ def load_audio_score_retrieval(split_file, config=None, test_only=False, piece_n
 
         va_images, va_specs, va_o2c_maps, va_audio_pathes = load_piece_list(split['valid'], aug_config=no_augment,
                                                                             raw_audio=raw_audio, fps=fps)
+        print('Compiling validation pool...')
         va_pool = AudioScoreRetrievalPool(va_images, va_specs, va_o2c_maps, va_audio_pathes,
                                           spec_context=spec_context, sheet_context=sheet_context, staff_height=staff_height,
                                           data_augmentation=no_augment, shuffle=False)
@@ -117,6 +119,7 @@ def load_audio_score_retrieval(split_file, config=None, test_only=False, piece_n
 
     te_images, te_specs, te_o2c_maps, te_audio_pathes = load_piece_list(split['test'], aug_config=test_augment,
                                                                         raw_audio=raw_audio, fps=fps)
+    print('Compiling test pool...')
     te_pool = AudioScoreRetrievalPool(te_images, te_specs, te_o2c_maps, te_audio_pathes,
                                       spec_context=spec_context, sheet_context=sheet_context, staff_height=staff_height,
                                       data_augmentation=no_augment, shuffle=False)
