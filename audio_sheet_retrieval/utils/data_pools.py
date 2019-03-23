@@ -5,6 +5,7 @@ from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 
 from madmom.audio.signal import Signal
+from audio_sheet_retrieval.config.settings import DATA_ROOT_MSMD
 
 try:
     from msmd.midi_parser import notes_to_onsets
@@ -34,7 +35,8 @@ class AudioScoreRetrievalPool(object):
 
     def __init__(self, images, specs, o2c_maps, audio_pathes,
                  spec_context=None, spec_bins=None, sheet_context=None, staff_height=None,
-                 data_augmentation=None, shuffle=True, mode='training', return_piece_names=False):
+                 data_augmentation=None, shuffle=True, mode='training', return_piece_names=False,
+                 return_n_onsets=False):
 
         if spec_context is None:
             spec_context = 42
@@ -57,6 +59,7 @@ class AudioScoreRetrievalPool(object):
         self.audio_pathes = audio_pathes
         self.mode = mode
         self.return_piece_names = return_piece_names
+        self.return_n_onsets = return_n_onsets
 
         self.spec_context = spec_context
         self.spec_bins = spec_bins
@@ -152,19 +155,17 @@ class AudioScoreRetrievalPool(object):
 
         # get target note coordinate
         target_coord = self.o2c_maps[i_sheet][i_spec][i_onset][1]
-        x = target_coord
-
+        # x = target_coord
+        # get sub-image (with coordinate fixing)
+        # this is done since we do not want to do the augmentation
+        # on the whole sheet image
+        c0 = max(0, target_coord - 2 * self.sheet_context)
+        c1 = min(c0 + 4 * self.sheet_context, sheet.shape[1])
+        c0 = max(0, c1 - 4 * self.sheet_context)
+        sheet = sheet[:, c0:c1]
         if self.data_augmentation['sheet_scaling']:
             import cv2
             sc = self.data_augmentation['sheet_scaling']
-
-            # get sub-image (with coordinate fixing)
-            # this is done since we do not want to do the augmentation
-            # on the whole sheet image
-            c0 = max(0, target_coord - 2 * self.sheet_context)
-            c1 = min(c0 + 4 * self.sheet_context, sheet.shape[1])
-            c0 = max(0, c1 - 4 * self.sheet_context)
-            sheet = sheet[:, c0:c1]
 
             scale = (sc[1] - sc[0]) * np.random.random_sample() + sc[0]
             new_size = (int(sheet.shape[1] * scale), int(sheet.shape[0] * scale))
@@ -237,6 +238,7 @@ class AudioScoreRetrievalPool(object):
         sheet_batch = np.zeros((len(batch_entities), 1, self.sheet_dim[0], self.sheet_context), dtype=np.float32)
         spec_batch = np.zeros((len(batch_entities), 1, self.audio_dim[0], self.spec_context), dtype=np.float32)
         piece_names_batch = []
+        n_onsets = []
 
         for i_entity, (i_sheet, i_spec, i_onset) in enumerate(batch_entities):
 
@@ -246,18 +248,30 @@ class AudioScoreRetrievalPool(object):
             # get spectrogram excerpt (target note in center)
             excerpt = self.prepare_train_audio(i_sheet, i_spec, i_onset)
 
+            if self.return_n_onsets:
+                onsets_diff = np.abs(self.o2c_maps[i_sheet][i_spec][:, 0] - self.o2c_maps[i_sheet][i_spec][i_onset][0])
+                # print(onsets_diff[i_onset-5:i_onset+5])
+
+                n_onset = np.where(onsets_diff <= self.spec_context / 2)[0].shape[0]
+                n_onsets.append(n_onset)
+
             # get corresponding piece name
-            piece_name = os.path.basename(self.audio_pathes[i_sheet])
+            if self.return_piece_names:
+                piece_name = os.path.basename(self.audio_pathes[i_sheet])
+                piece_names_batch.append(piece_name)
 
             # collect batch data
             sheet_batch[i_entity, 0, :, :] = snippet
             spec_batch[i_entity, 0, :, :] = excerpt
-            piece_names_batch.append(piece_name)
+
+        output = [sheet_batch, spec_batch]
 
         if self.return_piece_names:
-            return [sheet_batch, spec_batch, piece_names_batch]
-        else:
-            return [sheet_batch, spec_batch]
+            output.append(piece_names_batch)
+        if self.return_n_onsets:
+            output.append(n_onsets)
+
+        return output
 
 
 def onset_to_coordinates(alignment, mdict, note_events, fps):
@@ -515,44 +529,45 @@ def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT,
         return un_wrapped_image, audio_repr, onset_to_coord_maps, path_audio
 
 
-def load_audio_score_retrieval_test():
+def load_audio_score_retrieval_test(collection_dir):
     """
     Load alignment data
     """
-
-    # Give piece dir
-    collection_dir = '/home/matthias/cp/data/msmd'
 
     piece_names = ['BachCPE__cpe-bach-rondo__cpe-bach-rondo', 'BachJS__BWV259__bwv-259']
 
     all_piece_images = []
     all_piece_specs = []
     all_piece_o2c_maps = []
+    all_piece_audio_pathes = []
+
     for piece_name in piece_names:
 
-        piece_image, piece_specs, piece_o2c_maps = prepare_piece_data(collection_dir, piece_name)
+        piece_image, piece_specs, piece_o2c_maps, piece_audio_path = prepare_piece_data(collection_dir, piece_name)
 
         # keep stuff
         all_piece_images.append(piece_image)
         all_piece_specs.append(piece_specs)
         all_piece_o2c_maps.append(piece_o2c_maps)
+        all_piece_audio_pathes.append(piece_audio_path)
 
-    return AudioScoreRetrievalPool(all_piece_images, all_piece_specs, all_piece_o2c_maps,
-                                   data_augmentation=AUGMENT)
+    return AudioScoreRetrievalPool(all_piece_images, all_piece_specs, all_piece_o2c_maps, all_piece_audio_pathes,
+                                   data_augmentation=AUGMENT, return_piece_names=True, return_n_onsets=True)
 
 
 if __name__ == "__main__":
     """ main """
 
-    pool = load_audio_score_retrieval_test()
+    pool = load_audio_score_retrieval_test(DATA_ROOT_MSMD)
 
-    for i in range(100):
-        sheet, spec = pool[i:i+1]
+    for i in range(10):
+        sheet, spec, piece_name, n_onsets = pool[i:i+1]
 
         plt.figure()
         plt.clf()
         plt.subplot(1, 2, 1)
-        plt.imshow(sheet[0, 0], cmap="gray")
+        plt.imshow(sheet[0, 0], cmap='gray')
         plt.subplot(1, 2, 2)
-        plt.imshow(spec[0, 0], cmap="viridis", origin="lower")
-        plt.show()
+        plt.imshow(spec[0, 0], cmap='viridis', origin='lower')
+        plt.suptitle('{}\n#Onsets: {}'.format(piece_name[0], n_onsets[0]))
+        plt.savefig('{}.png'.format(i))

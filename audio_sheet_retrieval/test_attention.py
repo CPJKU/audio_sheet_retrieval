@@ -65,12 +65,13 @@ if __name__ == '__main__':
         model.prepare = None
 
     # select data
-    print('\nLoading data...')
+    print('Loading data...')
     eval_set = 'test'
     te_images, te_specs, te_o2c_maps, te_audio_pathes = load_piece_list(split[eval_set], fps=config['FPS'])
     te_pool = AudioScoreRetrievalPool(te_images, te_specs, te_o2c_maps, te_audio_pathes,
                                       spec_context=config['SPEC_CONTEXT'], sheet_context=config['SHEET_CONTEXT'],
-                                      staff_height=config['STAFF_HEIGHT'], shuffle=False, return_piece_names=True)
+                                      staff_height=config['STAFF_HEIGHT'], shuffle=False,
+                                      return_piece_names=True, return_n_onsets=True)
 
     print('Building network %s ...' % model.EXP_NAME)
     layers = model.build_model(input_shape_1=[1, te_pool.staff_height, te_pool.sheet_context],
@@ -120,7 +121,7 @@ if __name__ == '__main__':
     # compute output on test set
     n_test = args.n_test if args.n_test is not None else te_pool.shape[0]
     indices = np.linspace(0, te_pool.shape[0] - 1, n_test).astype(np.int)
-    X1, X2, piece_names = te_pool[indices]
+    X1, X2, piece_names, n_onsets = te_pool[indices]
 
     # compute attention
     prepare = getattr(model, 'prepare', None)
@@ -147,6 +148,7 @@ if __name__ == '__main__':
     X2 = X2[sorted_idxs]
     att = att[sorted_idxs]
     piece_names = [piece_names[cur_piece_idx] for cur_piece_idx in sorted_idxs.astype(int).tolist()]
+    n_onsets = np.array(n_onsets)[sorted_idxs]
 
     # apply attention to spectrogram
     X2_att = X2 * att[:, np.newaxis, np.newaxis]
@@ -193,9 +195,14 @@ if __name__ == '__main__':
     plt.grid()
     plt.xlim([-1, att.shape[1]])
     plt.title('Mean Entropy: %.5f' % entropy(mean_attention))
-
     plt.tight_layout()
     plt.savefig('AttentionMasks.png')
+
+    plt.figure('Notes vs. Entropy', figsize=(20, 10))
+    plt.clf()
+    plt.scatter(n_onsets, entropies, alpha=0.2)
+    plt.tight_layout()
+    plt.savefig('AttentionNoteEntropy.png')
 
     print(np.around(mean_attention, 2))
 
