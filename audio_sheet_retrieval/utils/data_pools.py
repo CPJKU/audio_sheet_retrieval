@@ -153,9 +153,9 @@ class AudioScoreRetrievalPool(object):
         # get sheet and annotations
         sheet = self.images[i_sheet]
 
-        # get target note coordinate
+        # get target note coodinate
         target_coord = self.o2c_maps[i_sheet][i_spec][i_onset][1]
-        # x = target_coord
+
         # get sub-image (with coordinate fixing)
         # this is done since we do not want to do the augmentation
         # on the whole sheet image
@@ -163,16 +163,16 @@ class AudioScoreRetrievalPool(object):
         c1 = min(c0 + 4 * self.sheet_context, sheet.shape[1])
         c0 = max(0, c1 - 4 * self.sheet_context)
         sheet = sheet[:, c0:c1]
+
         if self.data_augmentation['sheet_scaling']:
             import cv2
             sc = self.data_augmentation['sheet_scaling']
-
             scale = (sc[1] - sc[0]) * np.random.random_sample() + sc[0]
             new_size = (int(sheet.shape[1] * scale), int(sheet.shape[0] * scale))
             sheet = cv2.resize(sheet, new_size, interpolation=cv2.INTER_NEAREST)
 
-            # target coordinate
-            x = sheet.shape[1] // 2
+        # target coordinate
+        x = sheet.shape[1] // 2
 
         # compute sliding window coordinates
         x0 = int(np.max([x - self.sheet_context // 2, 0]))
