@@ -10,10 +10,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-def main(path_exp, direction):
+def main(path_exp, direction, context):
     results = []
 
-    for cur_path_yaml in glob.glob(os.path.join(path_exp, '*.yaml')):
+    for cur_path_yaml in glob.glob(os.path.join(path_exp, '*_{}_*.yaml'.format(context))):
+        print(cur_path_yaml)
         # check for query direction
         if direction not in cur_path_yaml:
             continue
@@ -36,36 +37,42 @@ def main(path_exp, direction):
     results = pd.DataFrame(results).sort_values(by=['tempo', ])
 
     # map over tempo
-    plt.figure()
+    plt.figure(figsize=(15, 5))
+    plt.subplot(1, 2, 1)
     x_ticks = range(results.shape[0])
-    plt.bar(x=x_ticks, height=results['map'])
+    plt.bar(x=x_ticks, height=results['map'], color='gray')
     plt.ylim([0, 1])
-    plt.xlabel('Tempo Ratio')
+    plt.xlabel('Tempo Stretch')
     plt.ylabel('MRR')
     plt.xticks(x_ticks, results['tempo'])
 
     # recall at k over tempo
-    plt.figure()
+    plt.subplot(1, 2, 2)
     n_recalls = 4
     bar_width = 0.1
+    bar_positions = np.linspace(- 2 * bar_width, 2 * bar_width, n_recalls)
+    labels = ['R@1', 'R@5', 'R@10', 'R@25']
+    recalls = ['recall_at_1', 'recall_at_5', 'recall_at_10', 'recall_at_25']
 
-    for cur_tempo_idx in range(results.shape[0]):
-        x_positions = cur_tempo_idx + np.linspace(- 2 * bar_width, 2 * bar_width, n_recalls)
-        heights = results.loc[cur_tempo_idx, :]
-        heights = heights[['recall_at_1', 'recall_at_5', 'recall_at_10', 'recall_at_25']]
-        plt.bar(x=x_positions, height=heights, width=0.1)
+    for cur_idx, cur_recall in enumerate(recalls):
+        heights = results[cur_recall].values
+        x_positions = np.arange(results.shape[0]) + bar_positions[cur_idx]
+        plt.bar(x=x_positions, height=heights, width=bar_width, label=labels[cur_idx])
 
-    plt.xlabel('Tempo Ratio')
+    plt.xlabel('Tempo Stretch')
     plt.ylabel('R@k')
     plt.ylim([0, 100])
     plt.xticks(x_ticks, results['tempo'])
-    plt.show()
+    plt.legend()
+    plt.suptitle('{}, Model: {}_{}'.format(args.dir, os.path.basename(args.exp), context))
+    plt.savefig('eval_{}_{}.png'.format(os.path.basename(args.exp), context))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Visualize MAP for different tempi.')
     parser.add_argument('--exp', help='path to experiments folder.', default="")
     parser.add_argument('--dir', help='query direction.', default="A2S")
+    parser.add_argument('--context', help='audio context.', default="lc")
     args = parser.parse_args()
 
-    main(args.exp, args.dir)
+    main(args.exp, args.dir, args.context)
