@@ -529,6 +529,85 @@ def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT,
         return un_wrapped_image, audio_repr, onset_to_coord_maps, path_audio
 
 
+def prepare_piece_data_video(collection_dir, piece_name, fps=20, sheet_context=200, spec_context=168):
+    """Load audio and sheet pairs for a piece.
+
+    For a single piece, get the data from MSMD and create
+    lists of corresponding audio-sheet pairs as a list.
+
+    Parameters
+    ----------
+    collection_dir : str
+        Path to the MSMD dataset.
+    piece_name : str
+        Name of the piece
+    fps : int
+        Frame rate in frames per second.
+    sheet_contex : int
+        Number of context frames for the sheet.
+    spec_context : int
+        Number of context frames for the audio.
+
+    Returns
+    -------
+    audio_slices : list
+    sheet_slices : list
+    path_audio : str
+        Path to audio recording.
+    """
+
+    # Params from config
+    SHEET_CONTEXT = sheet_context
+    N_ZEROS_SHEET = SHEET_CONTEXT // 2
+    SPEC_CONTEXT = spec_context
+    N_ZEROS_SPEC = SPEC_CONTEXT // 2
+
+    # get data from MSMD
+    sheet_repr, audio_repr, onset_to_coord_maps, path_audio = \
+        prepare_piece_data(collection_dir, piece_name, raw_audio=False,
+                           require_audio=True, load_midi_matrix=False, fps=fps)
+    audio_repr = audio_repr[0]
+    onset_to_coord_maps = onset_to_coord_maps[0]
+    n_audio_frames = audio_repr.shape[1]
+
+    # pad with zeros
+    sheet_repr = np.c_[np.zeros((sheet_repr.shape[0], N_ZEROS_SHEET)),
+                       sheet_repr,
+                       np.zeros((sheet_repr.shape[0], N_ZEROS_SHEET))]
+    audio_repr = np.c_[np.zeros((audio_repr.shape[0], N_ZEROS_SPEC)),
+                       audio_repr,
+                       np.zeros((audio_repr.shape[0], N_ZEROS_SPEC))]
+
+    # offset annotations and create interpolation function
+    onset_to_coord_maps[:, 0] += N_ZEROS_SPEC
+    onset_to_coord_maps[:, 1] += N_ZEROS_SHEET
+    f_inter = interp1d(onset_to_coord_maps[:, 0], onset_to_coord_maps[:, 1])
+    onsets = np.arange(onset_to_coord_maps[0, 0], onset_to_coord_maps[-1, 0], 1)
+    coords = f_inter(onsets).astype(int)
+
+    # fill with start and end linearly
+    onsets = np.r_[np.arange(onsets[0]), onsets, np.arange(onsets[-1] + 1, audio_repr.shape[1])]
+    coords = np.r_[np.linspace(N_ZEROS_SHEET, onset_to_coord_maps[0, 1] - 1, onset_to_coord_maps[0, 0] - 1),
+                   coords]
+    coords = np.r_[coords,
+                   np.linspace(onset_to_coord_maps[-1, 1] + 1,
+                               sheet_repr.shape[1],
+                               onsets.shape[0] - coords.shape[0])].astype(int)
+
+    # slice audio into input segments
+    audio_slices = []
+    sheet_slices = []
+
+    for cur_start_idx in range(N_ZEROS_SPEC, n_audio_frames + N_ZEROS_SPEC):
+        cur_slice = audio_repr[:, cur_start_idx - N_ZEROS_SPEC:cur_start_idx + N_ZEROS_SPEC]
+        cur_sheet = sheet_repr[:, coords[cur_start_idx] - N_ZEROS_SHEET:coords[cur_start_idx] + N_ZEROS_SHEET]
+
+        audio_slices.append(cur_slice)
+        sheet_slices.append(cur_sheet)
+
+    return audio_slices, sheet_slices, path_audio
+
+
 def load_audio_score_retrieval_test(collection_dir):
     """
     Load alignment data

@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 
 
 def prepare_img_for_render(img, rsz_factor=6):
+    # make sure its uint8
+    img = img.astype(np.uint8)
+
     # resize
     img_prep = cv2.resize(img, (img.shape[1] * rsz_factor, img.shape[0] * rsz_factor))
 

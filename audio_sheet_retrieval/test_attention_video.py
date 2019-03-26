@@ -20,21 +20,21 @@ import matplotlib.pyplot as plt
 import cv2
 
 import lasagne
+from audio_sheet_retrieval.config.settings import DATA_ROOT_MSMD
 from audio_sheet_retrieval.config.settings import EXP_ROOT
 from audio_sheet_retrieval.run_train import select_model, compile_tag
 from audio_sheet_retrieval.utils.batch_iterators import batch_compute1
 import audio_sheet_retrieval.utils.video_rendering as vr
-from audio_sheet_retrieval.utils.data_pools import AudioScoreRetrievalPool
-from audio_sheet_retrieval.utils.mutopia_data import load_piece_list
+from audio_sheet_retrieval.utils.data_pools import prepare_piece_data_video
 
 
-def prepare_frames(specs, scores, atts, first_onset_idx):
+def prepare_frames(specs, scores, atts):
     output_frames = []
     max_attention = np.max(atts)
 
-    for cur_frame_idx in range(specs.shape[0]):
-        cur_spec = specs[cur_frame_idx, 0]
-        cur_score = scores[cur_frame_idx, 0]
+    for cur_frame_idx in range(len(specs)):
+        cur_spec = specs[cur_frame_idx]
+        cur_score = scores[cur_frame_idx]
         cur_att = atts[cur_frame_idx] / max_attention
 
         cur_score_bgr = vr.prepare_img_for_render(cur_score, rsz_factor=1)
@@ -53,7 +53,7 @@ def prepare_frames(specs, scores, atts, first_onset_idx):
         cur_row_pointer = 0
 
         # sheet music
-        start_idx = n_black_border + int(middle_col - cur_score_bgr.shape[1] / 2)
+        start_idx = int(middle_col - cur_score_bgr.shape[1] / 2)
         end_idx = start_idx + cur_score_bgr.shape[1]
         cur_frame[cur_row_pointer:cur_row_pointer + cur_score_bgr.shape[0], start_idx:end_idx] = cur_score_bgr
         cur_row_pointer += cur_score_bgr.shape[0]
@@ -77,11 +77,6 @@ def prepare_frames(specs, scores, atts, first_onset_idx):
 
         output_frames.append(cur_frame)
 
-    # fade-in: fill until first onset with zero frames
-    for cur_frame_idx in range(first_onset_idx):
-        cur_frame = np.ones((n_rows, n_cols, 3), dtype=np.uint8)
-        output_frames.insert(0, cur_frame)
-
     return output_frames
 
 
@@ -92,21 +87,10 @@ def main(args):
 
     # load datapool with single piece
     print("\nLoading data...")
-    piece_list = [args.piece, ]
-    MY_AUGMENT = dict()
-    MY_AUGMENT['system_translation'] = 0
-    MY_AUGMENT['sheet_scaling'] = [1.00, 1.00]
-    MY_AUGMENT['onset_translation'] = 0
-    MY_AUGMENT['spec_padding'] = 0
-    MY_AUGMENT['interpolate'] = 1.0
-    MY_AUGMENT['synths'] = ['ElectricPiano']
-    MY_AUGMENT['tempo_range'] = [1.00, 1.00]
-    te_images, te_specs, te_o2c_maps, te_audio_pathes = load_piece_list(piece_list, fps=config['FPS'])
-    te_pool = AudioScoreRetrievalPool(te_images, te_specs, te_o2c_maps, te_audio_pathes,
-                                      spec_context=config['SPEC_CONTEXT'], sheet_context=config['SHEET_CONTEXT'],
-                                      staff_height=config['STAFF_HEIGHT'], data_augmentation=MY_AUGMENT,
-                                      shuffle=False, mode='all')
-
+    audio_slices, sheet_slices, path_audio = prepare_piece_data_video(DATA_ROOT_MSMD, args.piece,
+                                                                      fps=config['FPS'],
+                                                                      sheet_context=config['SHEET_CONTEXT'],
+                                                                      spec_context=config['SPEC_CONTEXT'])
     # select model
     model, _ = select_model(args.model)
 
@@ -114,8 +98,8 @@ def main(args):
         model.prepare = None
 
     print("Building network %s ..." % model.EXP_NAME)
-    layers = model.build_model(input_shape_1=[1, te_pool.staff_height, te_pool.sheet_context],
-                               input_shape_2=[1, te_pool.spec_bins, te_pool.spec_context],
+    layers = model.build_model(input_shape_1=[1, config['STAFF_HEIGHT'], config['SHEET_CONTEXT']],
+                               input_shape_2=[1, config['SPEC_BINS'], config['SPEC_CONTEXT']],
                                show_model=False)
 
     # tag parameter file
@@ -159,11 +143,10 @@ def main(args):
     print("Computing attention...")
 
     # compute output on test set
-    n_test = te_pool.shape[0]
-    indices = np.arange(n_test).astype(np.int)
-    X1, X2 = te_pool[indices]
+    X1 = np.expand_dims(np.asarray(sheet_slices), axis=1).astype(np.float32)
+    X2 = np.expand_dims(np.asarray(audio_slices), axis=1).astype(np.float32)
 
-    # compute attention
+    # compute attention on audio input
     att = batch_compute1(X2, compute_attention, batch_size=100, verbose=False, prepare=None)
 
     plt.imshow(att, aspect='auto', origin='lower')
@@ -174,10 +157,8 @@ def main(args):
     plt.savefig('{}_attention.png'.format(args.piece))
 
     # loop over frames
-    first_onset_idx = te_pool.o2c_maps[0][0][0, 0]
     print('Writing video...')
-    path_audio = te_pool.audio_pathes[0]
-    output_frames = prepare_frames(X2, X1, att, first_onset_idx)
+    output_frames = prepare_frames(audio_slices, sheet_slices, att)
     frame_rate = config['FPS']
     path_video = vr.write_video(output_frames, path_output='{}.mp4'.format(args.piece),
                                 frame_rate=frame_rate, overwrite=True)
