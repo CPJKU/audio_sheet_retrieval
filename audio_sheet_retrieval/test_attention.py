@@ -32,7 +32,7 @@ from audio_sheet_retrieval.utils.mutopia_data import load_piece_list
 def entropy(x):
     x += 1e-9
     log_prob = np.log(x)
-    return -np.sum(log_prob * x)
+    return -np.sum(log_prob * x, axis=x.ndim - 1)
 
 
 if __name__ == '__main__':
@@ -130,7 +130,7 @@ if __name__ == '__main__':
     max_attention = np.max(att)
 
     # get entropy for each attention mask
-    entropies = [entropy(a) for a in att]
+    entropies = entropy(att)
 
     # pieces = []
     # for cur_piece_idx, cur_piece_name in enumerate(piece_names):
@@ -143,12 +143,16 @@ if __name__ == '__main__':
 
     # sort by entropy
     sorted_idxs = np.argsort(entropies)
-    entropies = np.array(entropies)[sorted_idxs]
+    entropies = entropies[sorted_idxs]
     X1 = X1[sorted_idxs]
     X2 = X2[sorted_idxs]
     att = att[sorted_idxs]
     piece_names = [piece_names[cur_piece_idx] for cur_piece_idx in sorted_idxs.astype(int).tolist()]
     n_onsets = np.array(n_onsets)[sorted_idxs]
+
+    # Saving the variables for visualization (optional):
+    # with open('variables.pkl', 'wb') as fh:  # Python 3: open(..., 'wb')
+    #     pickle.dump([entropies, X1, X2, att, piece_names, n_onsets, sorted_idxs], fh)
 
     # apply attention to spectrogram
     X2_att = X2 * att[:, np.newaxis, np.newaxis]
