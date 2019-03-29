@@ -26,7 +26,7 @@ from .cca import CCA
 col = BColors()
 
 
-def eval_retrieval(lv1_cca, lv2_cca):
+def eval_retrieval(lv1_cca, lv2_cca, return_ranks=False):
     """ Compute retrieval eval measures """
 
     # get number of samples in lists
@@ -80,7 +80,10 @@ def eval_retrieval(lv1_cca, lv2_cca):
     mean_dist = np.diag(dists).mean()
     map = np.mean(aps)
 
-    return mean_rank, median_rank, mean_dist, hit_rates, map
+    if return_ranks:
+        return mean_rank, median_rank, mean_dist, hit_rates, map, ranks
+    else:
+        return mean_rank, median_rank, mean_dist, hit_rates, map
 
 
 def create_iter_functions(layers, objectives, compute_updates, learning_rate, l_2, l_1, init_cca=False):

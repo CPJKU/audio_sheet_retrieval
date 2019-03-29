@@ -181,7 +181,11 @@ if __name__ == '__main__':
     # lv2_cca = lv2_cca[r_idx]
 
     print("Computing performance measures...")
-    mean_rank_te, med_rank_te, dist_te, hit_rates, map = eval_retrieval(lv1_cca, lv2_cca)
+    mean_rank_te, med_rank_te, dist_te, hit_rates, map, ranks = eval_retrieval(lv1_cca, lv2_cca, return_ranks=True)
+
+    # Savings the ranks for visualization (optional):
+    # with open('ranks.pkl', 'wb') as fh:  # Python 3: open(..., 'wb')
+    #     pickle.dump(ranks, fh)
 
     # report hit rates
     recall_at_k = dict()
