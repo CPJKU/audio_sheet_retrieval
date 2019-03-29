@@ -488,9 +488,6 @@ def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT,
         performance = piece.load_performance(performance_key, require_audio=require_audio)
         path_audio = performance.audio
 
-        # running the alignment procedure
-        # alignment = align_score_to_performance(score, performance)
-
         # load existing alignment from mung file
         alignment = piece.load_alignment(performance_key)
 
@@ -505,10 +502,7 @@ def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT,
         if raw_audio:
             # load raw audio
             SAMPLE_RATE = 22050
-            # FRAME_SIZE = 59042
-            # FPS = 20
             sig = Signal(performance.audio, num_channels=1, sample_rate=SAMPLE_RATE, dtype=np.float32)
-            # frames = FramedSignal(sig, frame_size=FRAME_SIZE, hop_size=int(FRAME_SIZE / 2))
             audio_repr.append(np.atleast_2d(sig))
         else:
             # load spectrogram
