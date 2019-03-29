@@ -21,10 +21,9 @@ import theano
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import pandas as pd
 
 from audio_sheet_retrieval.config.settings import EXP_ROOT
-from audio_sheet_retrieval.run_train import select_model, select_data, compile_tag
+from audio_sheet_retrieval.run_train import select_model, compile_tag
 from audio_sheet_retrieval.utils.batch_iterators import batch_compute1
 from audio_sheet_retrieval.utils.data_pools import AudioScoreRetrievalPool
 from audio_sheet_retrieval.utils.mutopia_data import load_piece_list
@@ -130,20 +129,21 @@ if __name__ == '__main__':
     att = batch_compute1(X2, compute_attention, batch_size=100, verbose=False, prepare=None)
     max_attention = np.max(att)
 
-    # sort samples by attention
+    # get entropy for each attention mask
     entropies = [entropy(a) for a in att]
 
-    pieces = []
-    for cur_piece_idx, cur_piece_name in enumerate(piece_names):
-        cur_piece = dict()
-        cur_piece['name'] = cur_piece_name
-        cur_piece['entropy'] = entropies[cur_piece_idx]
-        pieces.append(cur_piece)
-
-    pieces = pd.DataFrame(pieces)
+    # pieces = []
+    # for cur_piece_idx, cur_piece_name in enumerate(piece_names):
+    #     cur_piece = dict()
+    #     cur_piece['name'] = cur_piece_name
+    #     cur_piece['entropy'] = entropies[cur_piece_idx]
+    #     pieces.append(cur_piece)
+    # import pandas as pd
+    # pieces = pd.DataFrame(pieces)
 
     # sort by entropy
     sorted_idxs = np.argsort(entropies)
+    entropies = np.array(entropies)[sorted_idxs]
     X1 = X1[sorted_idxs]
     X2 = X2[sorted_idxs]
     att = att[sorted_idxs]
@@ -198,9 +198,13 @@ if __name__ == '__main__':
     plt.tight_layout()
     plt.savefig('AttentionMasks.png')
 
-    plt.figure('Notes vs. Entropy', figsize=(20, 10))
+    fig = plt.figure('Notes vs. Entropy', figsize=(12, 6))
+    plot = fig.add_subplot(111)
+    plot.tick_params(axis='both', which='major', labelsize=16)
     plt.clf()
     plt.scatter(n_onsets, entropies, alpha=0.2)
+    plt.xlabel('#Onsets in Audio Frame', fontsize=18)
+    plt.ylabel('Entropy', fontsize=18)
     plt.tight_layout()
     plt.savefig('AttentionNoteEntropy.png')
 
