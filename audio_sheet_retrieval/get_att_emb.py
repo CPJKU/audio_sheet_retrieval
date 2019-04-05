@@ -1,10 +1,13 @@
 """
-Visualize Attention model on the test data for a given tempo.
+Script to compute the attention models and embedding spaces on test data for a given tempo, and save corresponding
+variables to pickle file.
+The variables are saved to utils/visualizations/variables_tag.pkl, where tag corresponds to the experiment label,
+for example 'variables_mutopia_ccal_cont_rsz_dense_att_est_UV_all_split_full_aug_lc_1250'
 
 Example Call:
-    python test_attention.py --model models/mutopia_ccal_cont_rsz_dense_att.py \
+    python get_att_emb.py --model models/mutopia_ccal_cont_rsz_dense_att.py \
      --data mutopia --train_split ../../msmd/msmd/splits/all_split.yaml \
-     --config exp_configs/mutopia_full_aug_lc.yaml --n_test 1000 --test_tempo 1.25
+     --config exp_configs/mutopia_full_aug_lc.yaml --estimate_UV --n_test 1000 --test_tempo 1.25
 """
 from __future__ import print_function
 
@@ -24,9 +27,10 @@ import matplotlib.gridspec as gridspec
 
 from audio_sheet_retrieval.config.settings import EXP_ROOT
 from audio_sheet_retrieval.run_train import select_model, compile_tag
-from audio_sheet_retrieval.utils.batch_iterators import batch_compute1
+from audio_sheet_retrieval.utils.batch_iterators import batch_compute1, batch_compute2
 from audio_sheet_retrieval.utils.data_pools import AudioScoreRetrievalPool, NO_AUGMENT
 from audio_sheet_retrieval.utils.mutopia_data import load_piece_list
+from audio_sheet_retrieval.utils.train_dcca_pool import eval_retrieval
 
 
 def entropy(x):
@@ -47,6 +51,8 @@ if __name__ == '__main__':
     parser.add_argument('--train_split', help='path to train split file.', type=str, default=None)
     parser.add_argument('--config', help='path to experiment config file.', type=str, default=None)
     parser.add_argument('--seed', help='query direction.', type=int, default=23)
+    parser.add_argument('--dump_variables', help='dump variables for visualizations to utils/visualizations.',
+                        action='store_true')
     parser.add_argument('--test_tempo', help='select different tempo ratio for testing (overwrites exp-config).',
                         type=float, default=1.0)
     args = parser.parse_args()
@@ -124,6 +130,13 @@ if __name__ == '__main__':
     compute_attention = theano.function(inputs=[l_view2.input_var],
                                         outputs=lasagne.layers.get_output(attention_layer, deterministic=True))
 
+    # embedding spaces layer
+    input_1 = input_2 = [l_view1.input_var, l_view2.input_var]
+    compute_v1_latent = theano.function(inputs=input_1,
+                                        outputs=lasagne.layers.get_output(l_v1latent, deterministic=True))
+    compute_v2_latent = theano.function(inputs=input_2,
+                                        outputs=lasagne.layers.get_output(l_v2latent, deterministic=True))
+
     # iterate test data
     print('Computing attention...')
 
@@ -142,23 +155,41 @@ if __name__ == '__main__':
     # get entropy for each attention mask
     entropies = entropy(att)
 
-    # pieces = []
-    # for cur_piece_idx, cur_piece_name in enumerate(piece_names):
-    #     cur_piece = dict()
-    #     cur_piece['name'] = cur_piece_name
-    #     cur_piece['entropy'] = entropies[cur_piece_idx]
-    #     pieces.append(cur_piece)
-    # import pandas as pd
-    # pieces = pd.DataFrame(pieces)
+    print("Computing embedding space...")
+    lv1 = batch_compute2(X1, X2, compute_v1_latent, np.min([100, n_test]), prepare1=model.prepare)
+    lv2 = batch_compute2(X1, X2, compute_v2_latent, np.min([100, n_test]), prepare1=model.prepare)
+    lv1_cca = lv1
+    lv2_cca = lv2
 
-    # sort by entropy
+    # reset n_test
+    n_test = lv1_cca.shape[0]
+
+    print("Computing performance measures...")
+    mean_rank_te, med_rank_te, dist_te, hit_rates, map, ranks = eval_retrieval(lv1_cca, lv2_cca, return_ranks=True)
+    ranks = np.array(ranks)
+
+    # sort by entropy (NO NEED TO SORT VARIABLES HERE)
     sorted_idxs = np.argsort(entropies)
-    entropies = entropies[sorted_idxs]
-    X1 = X1[sorted_idxs]
-    X2 = X2[sorted_idxs]
-    att = att[sorted_idxs]
-    piece_names = [piece_names[cur_piece_idx] for cur_piece_idx in sorted_idxs.astype(int).tolist()]
-    n_onsets = np.array(n_onsets)[sorted_idxs]
+    # entropies = entropies[sorted_idxs]
+    # X1 = X1[sorted_idxs]
+    # X2 = X2[sorted_idxs]
+    # att = att[sorted_idxs]
+    # piece_names = [piece_names[cur_piece_idx] for cur_piece_idx in sorted_idxs.astype(int).tolist()]
+    # n_onsets = np.array(n_onsets)[sorted_idxs]
+    # ranks = np.array(ranks)[sorted_idxs]
+    # lv1_cca = lv1_cca[sorted_idxs]
+    # lv2_cca = lv2_cca[sorted_idxs]
+
+    # Dumping the variables for visualizations:
+    if args.dump_variables:
+        ranks = np.array(ranks)
+        n_onsets = np.array(n_onsets)
+        tag = compile_tag(args.train_split, args.config).replace('mutopia_', '')
+        expname = 'variables_' + model.EXP_NAME + '_'
+        # res_file = dump_file.replace("params_", "variables_").replace(".pkl", "")
+        res_file = 'utils/visualizations/' + expname + tag + '_{}.pkl'.format(int(args.test_tempo * 1000))
+        with open(res_file, 'wb') as fh:  # Python 3: open(..., 'wb')
+            pickle.dump([entropies, X1, X2, att, piece_names, n_onsets, sorted_idxs, ranks, lv1_cca, lv2_cca], fh)
 
     # apply attention to spectrogram
     X2_att = X2 * att[:, np.newaxis, np.newaxis]
@@ -219,46 +250,3 @@ if __name__ == '__main__':
     plt.savefig('AttentionNoteEntropy.png')
 
     print(np.around(mean_attention, 2))
-
-    # # compute t-SNE embedding of attention maps
-    # from sklearn.manifold import TSNE
-    # e = TSNE(n_components=2).fit_transform(att)
-    #
-    # plt.figure('Attention Mask', figsize=(20, 20))
-    # plt.clf()
-    # plt.plot(e[:, 1], e[:, 0], 'o')
-    # plt.title('Attention t-SNE')
-    # plt.savefig('AttentionEmbedding.png')
-    #
-    # # prepare image
-    # scale = 50
-    # dr = X2.shape[2]
-    # dc = X2.shape[3]
-    # e += np.abs(e.min(axis=0, keepdims=True))
-    # e /= e.max(axis=0, keepdims=True)
-    # max_r, max_c = np.max(e, axis=0)
-    # e *= (scale * dr)
-    # e += dr
-    #
-    # dim_c = int(max_c * (scale * dc) + 2 * dc)
-    # dim_r = int(max_r * (scale * dr) + 2 * dr)
-    # I = np.zeros((dim_r, dim_c), dtype=np.float32)
-    #
-    # for i in xrange(e.shape[0]):
-    #     rc, cc = e[i, :]
-    #     r0 = int(rc - dr // 2)
-    #     r1 = r0 + dr
-    #     c0 = int(cc - dc // 2)
-    #     c1 = c0 + dc
-    #
-    #     Sample = X2[i, 0]
-    #     Sample[:, 0] = 1
-    #     Sample[:, -1] = 1
-    #     Sample[0, :] = 1
-    #     Sample[-1, :] = 1
-    #     I[r0:r1, c0:c1] = Sample
-    #
-    # plt.figure('Attention Miniatures', figsize=(40, 40))
-    # plt.clf()
-    # plt.imshow(I, cmap='viridis', origin='lower')
-    # plt.savefig('AttentionMiniatures.png')
