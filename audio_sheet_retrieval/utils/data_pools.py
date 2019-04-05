@@ -153,7 +153,7 @@ class AudioScoreRetrievalPool(object):
         # get sheet and annotations
         sheet = self.images[i_sheet]
 
-        # get target note coodinate
+        # get target note coordinate
         target_coord = self.o2c_maps[i_sheet][i_spec][i_onset][1]
 
         # get sub-image (with coordinate fixing)

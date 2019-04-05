@@ -23,14 +23,14 @@ def prepare_img_for_render(img, rsz_factor=6):
     return img_prep
 
 
-def prepare_spec_for_render(spec, rsz_factor=6):
+def prepare_spec_for_render(spec, rsz_factor=6, cmap=plt.cm.viridis):
     spec_prep = np.flipud(spec)
 
     # resize
     spec_prep = cv2.resize(spec_prep, (spec.shape[1] * rsz_factor, spec.shape[0] * rsz_factor))
 
     # get rgb version
-    spec_prep = plt.cm.viridis(spec_prep)[:, :, 0:3]
+    spec_prep = cmap(spec_prep)[:, :, 0:3]
 
     # convert to uint8
     spec_prep = (spec_prep * 255).astype(np.uint8)
@@ -41,8 +41,8 @@ def prepare_spec_for_render(spec, rsz_factor=6):
     return spec_prep
 
 
-def prepare_distribution_for_render(dist, height=100, width_rsz_factor=1):
-    prob_box = np.ones((height, int(width_rsz_factor * len(dist)), 3), dtype=np.uint8)
+def prepare_distribution_for_render(dist, height=100, width_rsz_factor=1, bg_color=0, bar_color=(255, 255, 0)):
+    prob_box = bg_color * np.ones((height, int(width_rsz_factor * len(dist)), 3), dtype=np.uint8)
     max_len = int(height)
 
     # show top labels
@@ -54,7 +54,7 @@ def prepare_distribution_for_render(dist, height=100, width_rsz_factor=1):
         cv2.line(prob_box,
                  (width_rsz_factor * col_coord, prob_box.shape[0]),
                  (width_rsz_factor * col_coord, prob_box.shape[0] - cur_line_length),
-                 (255, 255, 0), thickness=5)
+                 bar_color, thickness=10)
 
     return prob_box
 

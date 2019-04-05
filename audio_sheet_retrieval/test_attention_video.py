@@ -28,7 +28,7 @@ import audio_sheet_retrieval.utils.video_rendering as vr
 from audio_sheet_retrieval.utils.data_pools import prepare_piece_data_video
 
 
-def prepare_frames(specs, scores, atts):
+def prepare_frames(specs, scores, atts, color_schema='paper'):
     output_frames = []
     max_attention = np.max(atts)
 
@@ -37,9 +37,20 @@ def prepare_frames(specs, scores, atts):
         cur_score = scores[cur_frame_idx]
         cur_att = atts[cur_frame_idx] / max_attention
 
+        if color_schema == 'paper':
+            bg_color = 255
+            cmap = plt.cm.gray_r
+            bar_color = (150, 150, 150)
+        if color_schema == 'display':
+            bg_color = 0
+            cmap = plt.cm.viridis
+            bar_color = (255, 255, 0)
+
         cur_score_bgr = vr.prepare_img_for_render(cur_score, rsz_factor=1)
-        cur_spec_bgr = vr.prepare_spec_for_render(cur_spec, rsz_factor=4)
-        cur_att_bgr = vr.prepare_distribution_for_render(cur_att, width_rsz_factor=4)
+        cur_spec_bgr = vr.prepare_spec_for_render(cur_spec, rsz_factor=4, cmap=cmap)
+        cur_att_bgr = vr.prepare_distribution_for_render(cur_att, width_rsz_factor=4,
+                                                         bg_color=bg_color,
+                                                         bar_color=bar_color)
 
         # initialize frame
         n_spacer = int(20)
@@ -47,7 +58,8 @@ def prepare_frames(specs, scores, atts):
         n_black_border = int(50)
         n_cols = n_black_border + cur_spec_bgr.shape[1] + n_black_border
         middle_col = int(n_cols / 2)
-        cur_frame = np.ones((n_rows, n_cols, 3), dtype=np.uint8)
+
+        cur_frame = bg_color * np.ones((n_rows, n_cols, 3), dtype=np.uint8)
 
         # build frame
         cur_row_pointer = 0
@@ -143,7 +155,7 @@ def main(args):
     print("Computing attention...")
 
     # compute output on test set
-    X1 = np.expand_dims(np.asarray(sheet_slices), axis=1).astype(np.float32)
+    # X1 = np.expand_dims(np.asarray(sheet_slices), axis=1).astype(np.float32)
     X2 = np.expand_dims(np.asarray(audio_slices), axis=1).astype(np.float32)
 
     # compute attention on audio input

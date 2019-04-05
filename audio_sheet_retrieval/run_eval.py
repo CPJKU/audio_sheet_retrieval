@@ -15,9 +15,11 @@ import lasagne
 import theano
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from audio_sheet_retrieval.config.settings import EXP_ROOT
-from audio_sheet_retrieval.run_train import select_model, select_data, compile_tag
+from audio_sheet_retrieval.utils.mutopia_data import load_audio_score_retrieval
+from audio_sheet_retrieval.run_train import select_model, compile_tag
 from audio_sheet_retrieval.utils.batch_iterators import batch_compute2
 from audio_sheet_retrieval.utils.train_dcca_pool import eval_retrieval
 
@@ -70,7 +72,8 @@ if __name__ == '__main__':
 
     # select data
     print("\nLoading data...")
-    data = select_data(args.data, args.train_split, config, args.seed, test_only=True)
+    data = load_audio_score_retrieval(split_file=args.train_split, config=config,
+                                      test_only=True, piece_name=None, return_piece_names=True)
 
     # tag parameter file
     tag = compile_tag(args.train_split, args.config)
@@ -111,7 +114,7 @@ if __name__ == '__main__':
     eval_set = 'test'
     n_test = args.n_test if args.n_test is not None else data[eval_set].shape[0]
     indices = np.linspace(0, data[eval_set].shape[0] - 1, n_test).astype(np.int)
-    X1, X2 = data[eval_set][indices]
+    X1, X2, piece_names = data[eval_set][indices]
 
     print("Computing embedding space...")
     lv1 = batch_compute2(X1, X2, compute_v1_latent, np.min([100, n_test]), prepare1=model.prepare)
@@ -183,10 +186,6 @@ if __name__ == '__main__':
     print("Computing performance measures...")
     mean_rank_te, med_rank_te, dist_te, hit_rates, map, ranks = eval_retrieval(lv1_cca, lv2_cca, return_ranks=True)
 
-    # Savings the ranks for visualization (optional):
-    # with open('ranks.pkl', 'wb') as fh:  # Python 3: open(..., 'wb')
-    #     pickle.dump(ranks, fh)
-
     # report hit rates
     recall_at_k = dict()
 
@@ -221,7 +220,11 @@ if __name__ == '__main__':
 
         ret_dir = "A2S" if args.V2_to_V1 else "S2A"
         res_file = dump_file.replace("params_", "eval_").replace(".pkl", "")
-        res_file = res_file + '_{}_{}.yaml'.format(ret_dir, int(args.test_tempo * 1000))
+        res_file = res_file + '_{}_{}'.format(ret_dir, int(args.test_tempo * 1000))
 
-        with open(res_file, 'w') as fp:
+        # save evaluation results
+        with open(res_file + '.yaml', 'w') as fp:
             yaml.dump(results, fp, default_flow_style=False)
+
+        # save ranked lists
+        pd.DataFrame(list(zip(indices, piece_names, ranks))).to_csv(res_file + '_ranks.csv')
