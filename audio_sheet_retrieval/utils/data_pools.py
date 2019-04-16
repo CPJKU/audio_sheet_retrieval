@@ -523,7 +523,8 @@ def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT,
         return un_wrapped_image, audio_repr, onset_to_coord_maps, path_audio
 
 
-def prepare_piece_data_video(collection_dir, piece_name, fps=20, sheet_context=200, spec_context=168):
+def prepare_piece_data_video(collection_dir, piece_name, aug_config=NO_AUGMENT, fps=20,
+                             sheet_context=200, spec_context=168):
     """Load audio and sheet pairs for a piece.
 
     For a single piece, get the data from MSMD and create
@@ -558,7 +559,7 @@ def prepare_piece_data_video(collection_dir, piece_name, fps=20, sheet_context=2
 
     # get data from MSMD
     sheet_repr, audio_repr, onset_to_coord_maps, path_audio = \
-        prepare_piece_data(collection_dir, piece_name, raw_audio=False,
+        prepare_piece_data(collection_dir, piece_name, aug_config, raw_audio=False,
                            require_audio=True, load_midi_matrix=False, fps=fps)
     audio_repr = audio_repr[0]
     onset_to_coord_maps = onset_to_coord_maps[0]
