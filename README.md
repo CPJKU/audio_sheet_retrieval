@@ -1,14 +1,20 @@
+# Learning Soft-Attention Models for Tempo-invariant Audio-Sheet Music Retrieval
 
-# Learning Audio-Sheet Music Correspondences for Cross-Modal Retrieval and Piece Identification
 This repository contains all experimental code for reproducing the results
 reported in our article:
+
+>[Learning Soft-Attention Models for Tempo-invariant Audio-Sheet Music Retrieval](#).<br>
+Balke, S., Dorfer M., Carvalho, L., Arzt A., and Widmer G.<br>
+In *Proceedings of the International Society for Music Information Retrieval Conference (ISMIR)*, 2019.
+
+Please also check the [accompanying website](http://cp.jku.at/resources/2019_ASR-TempoInv_ISMIR) for further instructions and examples.
+
+The paper above is an extension of the work presented in:
 
 >[Learning Audio-Sheet Music Correspondences for Cross-Modal Retrieval and Piece Identification](https://transactions.ismir.net/articles/10.5334/tismir.12/)
 ([PDF](https://transactions.ismir.net/articles/10.5334/tismir.12/galley/8/download/)).<br>
 Dorfer M., Hajič J. jr., Arzt A., Frostel H., and Widmer G.<br>
 *Transactions of the International Society for Music Information Retrieval*, 2018
-
-The paper above is an invited extension of the work presented in:
 
 >[Learning audio-sheet music correspondences for score identification and offline alignment](https://ismir2017.smcnus.org/wp-content/uploads/2017/10/32_Paper.pdf).<br>
 Dorfer M., Arzt A., and Widmer G.<br>
