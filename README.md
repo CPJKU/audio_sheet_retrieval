@@ -3,11 +3,11 @@
 This repository contains all experimental code for reproducing the results
 reported in our article:
 
->[Learning Soft-Attention Models for Tempo-invariant Audio-Sheet Music Retrieval](#).<br>
+>[Learning Soft-Attention Models for Tempo-invariant Audio-Sheet Music Retrieval](http://archives.ismir.net/ismir2019/paper/000024.pdf).<br>
 Balke, S., Dorfer M., Carvalho, L., Arzt A., and Widmer G.<br>
 In *Proceedings of the International Society for Music Information Retrieval Conference (ISMIR)*, 2019.
 
-Please also check the [accompanying website](http://cp.jku.at/resources/2019_ASR-TempoInv_ISMIR) for further instructions and examples.
+Please also check the [accompanying website](http://www.cp.jku.at/resources/2019_ASR-TempoInv_ISMIR/) for further instructions and examples.
 
 The paper above is an extension of the work presented in:
 
