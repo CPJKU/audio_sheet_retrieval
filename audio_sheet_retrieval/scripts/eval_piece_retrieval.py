@@ -15,7 +15,7 @@ from collections import OrderedDict
 
 aug_mapping = OrderedDict()
 aug_mapping["mutopia_no_aug"] = "none"
-aug_mapping["mutopia_full_aug"] = "full"
+aug_mapping["mutopia_full_aug_sc"] = "full"
 
 split_mapping = OrderedDict()
 split_mapping["bach_split"] = "\\bachset"

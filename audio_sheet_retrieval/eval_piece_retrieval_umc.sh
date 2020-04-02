@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /bin/bash
 
 # example calls:
 # --------------
@@ -11,7 +11,7 @@
 device="export THEANO_FLAGS=\"device=$1\""
 echo $device
 
-cmd="python umc_s2a_server.py --model $2 --data_dir $3 --dump_results --estimate_UV --init_audio_db --full_eval --train_split ../../sheet_manager/sheet_manager/splits/all_split.yaml --config exp_configs/mutopia_full_aug.yaml"
+cmd="python umc_s2a_server.py --model $2 --data_dir $3 --dump_results --estimate_UV --init_audio_db --full_eval --train_split ../../msmd/msmd/splits/all_split.yaml --config exp_configs/mutopia_full_aug_sc.yaml"
 echo $cmd
 ($device && $cmd)
 
@@ -19,7 +19,7 @@ cmd="$cmd --real_perf"
 echo $cmd
 ($device && $cmd)
 
-cmd="python umc_a2s_server.py --model $2 --data_dir $3 --dump_results --estimate_UV --init_sheet_db --full_eval --train_split ../../sheet_manager/sheet_manager/splits/all_split.yaml --config exp_configs/mutopia_full_aug.yaml"
+cmd="python umc_a2s_server.py --model $2 --data_dir $3 --dump_results --estimate_UV --init_sheet_db --full_eval --train_split ../../msmd/msmd/splits/all_split.yaml --config exp_configs/mutopia_full_aug_sc.yaml"
 echo $cmd
 ($device && $cmd)
 

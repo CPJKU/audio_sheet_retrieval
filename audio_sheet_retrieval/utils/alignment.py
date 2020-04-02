@@ -7,7 +7,7 @@ SHEET_WINDOW = 100
 SPEC_WINDOW = 40
 
 
-class ContinousSpec2SheetHashingPool(object):
+class ContinuousSpec2SheetHashingPool(object):
     """
     Data Pool for spectrogram to sheet snippet hashing
     """
@@ -118,7 +118,7 @@ def align_baseline(dists):
 
 def align_pydtw(dists):
     """ Use python dtw package for alignment """
-    from dtw_by_dist import dtw_by_dist
+    from audio_sheet_retrieval.utils.dtw_by_dist import dtw_by_dist
 
     min_dist, C, C_acc, path = dtw_by_dist(dists)
 

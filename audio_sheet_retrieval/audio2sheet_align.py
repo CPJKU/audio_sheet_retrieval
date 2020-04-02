@@ -8,16 +8,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
-from utils.mutopia_data import NO_AUGMENT, load_split
-from retrieval_wrapper import RetrievalWrapper
-from config.settings import EXP_ROOT
-from config.settings import DATA_ROOT_MSMD as ROOT_DIR
-from utils.alignment import compute_alignment, estimate_alignment_error
+from audio_sheet_retrieval.utils.mutopia_data import NO_AUGMENT, load_split
+from audio_sheet_retrieval.retrieval_wrapper import RetrievalWrapper
+from audio_sheet_retrieval.config.settings import EXP_ROOT
+from audio_sheet_retrieval.config.settings import DATA_ROOT_MSMD as ROOT_DIR
+from audio_sheet_retrieval.utils.alignment import compute_alignment, estimate_alignment_error
 
-from run_train import compile_tag
+from audio_sheet_retrieval.run_train import compile_tag, select_model
 
-from msmd.midi_parser import processor
-from utils.data_pools import prepare_piece_data, AudioScoreRetrievalPool
+from msmd.midi_parser import extract_spectrogram
+from audio_sheet_retrieval.utils.data_pools import prepare_piece_data, AudioScoreRetrievalPool
 
 sns.set_style('ticks')
 
@@ -56,7 +56,6 @@ if __name__ == '__main__':
     TOL = 25  # tolerance in pixel
 
     # load retrieval model
-    from run_train import select_model
     model, _ = select_model(args.model)
     if args.estimate_UV:
         model.EXP_NAME += "_est_UV"
@@ -96,7 +95,7 @@ if __name__ == '__main__':
             audio_file = "/home/matthias/cp/data/sheet_localization/real_music/0_real_audio/%s.flac" % piece
             if not os.path.exists(audio_file):
                 continue
-            spec = processor.process(audio_file).T
+            spec = extract_spectrogram(audio_file)
         # use pre-computed spectrogram
         else:
             spec = piece_pool.specs[0][0]
@@ -136,13 +135,13 @@ if __name__ == '__main__':
 
         # compute sheet snippet codes
         img_codes = np.zeros((sheet_slices.shape[0], model.DIM_LATENT), dtype=np.float32)
-        for j in xrange(sheet_slices.shape[0]):
+        for j in range(sheet_slices.shape[0]):
             imges = sheet_slices[j:j + 1]
             img_codes[j] = embed_network.compute_view_1(imges)
 
         # compute spectrogram snippet codes
         spec_codes = np.zeros((spec_slices.shape[0], model.DIM_LATENT), dtype=np.float32)
-        for j in xrange(spec_slices.shape[0]):
+        for j in range(spec_slices.shape[0]):
             specs = spec_slices[j:j + 1]
             spec_codes[j] = embed_network.compute_view_2(specs)
 

@@ -281,8 +281,8 @@ class SegmentationNetwork(Network):
         R = np.zeros((n_images, Nc, images.shape[2], images.shape[3]))
         V = np.zeros((n_images, Nc, images.shape[2], images.shape[3]))
 
-        for ir in xrange(len(row_0)):
-            for ic in xrange(len(col_0)):
+        for ir in range(len(row_0)):
+            for ic in range(len(col_0)):
                 I = images[:, :, row_0[ir]:row_1[ir], col_0[ic]:col_1[ic]]
                 P = self.compute_output(I)
                 R[:, :, row_0[ir]:row_1[ir], col_0[ic]:col_1[ic]] += P * ham2d
@@ -684,13 +684,13 @@ class OpticalMusicRecognizer(object):
 
         # assign bars to systems
         bars_by_system = [np.zeros((0, 2, 2))] * page_systems.shape[0]
-        for i in xrange(dists.shape[0]):
+        for i in range(dists.shape[0]):
             min_idx = np.argmin(dists[i])
             bars = page_bars[i][np.newaxis, :, :]
             bars_by_system[min_idx] = np.vstack((bars_by_system[min_idx], bars))
 
         # sort bars from left to right
-        for i in xrange(page_systems.shape[0]):
+        for i in range(page_systems.shape[0]):
             sorted_idx = np.argsort(bars_by_system[i][:, 0, 1])
             bars_by_system[i] = bars_by_system[i][sorted_idx]
 

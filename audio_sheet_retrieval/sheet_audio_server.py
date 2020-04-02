@@ -6,13 +6,13 @@ import yaml
 import argparse
 import numpy as np
 
-from config.settings import EXP_ROOT
-from config.settings import DATA_ROOT_MSMD as ROOT_DIR
-from utils.mutopia_data import load_split
-from run_train import compile_tag, select_model
-from audio_sheet_server import AudioSheetServer
-from utils.plotting import BColors
-from utils.data_pools import prepare_piece_data, NO_AUGMENT
+from audio_sheet_retrieval.config.settings import EXP_ROOT
+from audio_sheet_retrieval.config.settings import DATA_ROOT_MSMD as ROOT_DIR
+from audio_sheet_retrieval.utils.mutopia_data import load_split
+from audio_sheet_retrieval.run_train import compile_tag, select_model
+from audio_sheet_retrieval.audio_sheet_server import AudioSheetServer
+from audio_sheet_retrieval.utils.plotting import BColors
+from audio_sheet_retrieval.utils.data_pools import prepare_piece_data, NO_AUGMENT
 
 # init color printer
 col = BColors()
@@ -46,7 +46,8 @@ if __name__ == '__main__':
     test_augment['tempo_range'] = [config["TEST_TEMPO"], config["TEST_TEMPO"]]
 
     # initialize model
-    a2s_srv = AudioSheetServer()
+    a2s_srv = AudioSheetServer(spec_shape=(1, config['SPEC_BINS'], config['SPEC_CONTEXT']),
+                               sheet_shape=(1, config['STAFF_HEIGHT'], config['SHEET_CONTEXT']))
 
     # load tr/va/te split
     split = load_split(args.train_split)
@@ -78,10 +79,11 @@ if __name__ == '__main__':
         for tp in te_pieces:
 
             # load piece
-            piece_image, _, _ = prepare_piece_data(ROOT_DIR, tp, aug_config=test_augment, require_audio=False)
+            piece_image, _, _, _ = prepare_piece_data(ROOT_DIR, tp, aug_config=test_augment, require_audio=False)
 
             # detect piece from spectrogram
-            ret_result, ret_votes = a2s_srv.detect_performance(piece_image, top_k=len(te_pieces), n_candidates=args.n_candidates, verbose=False)
+            ret_result, ret_votes = a2s_srv.detect_performance(piece_image, top_k=len(te_pieces),
+                                                               n_candidates=args.n_candidates, verbose=False)
             if tp in ret_result:
                 rank = ret_result.index(tp) + 1
                 ratio = ret_votes[ret_result.index(tp)]
@@ -95,10 +97,20 @@ if __name__ == '__main__':
         # report results
         ranks = np.asarray(ranks)
         n_queries = len(ranks)
-        for r in xrange(1, n_queries + 1):
+        for r in range(1, n_queries + 1):
             n_correct = np.sum(ranks == r)
             if n_correct > 0:
-                print(col.print_colored("%d of %d retrieved performances ranked at position %d." % (n_correct, n_queries, r), col.WARNING))
+                print(col.print_colored("%d of %d retrieved performances ranked at position %d." % (n_correct,
+                                                                                                    n_queries, r),
+                                        col.WARNING))
+
+        recall_refs = [1, 5, 10]
+        for r in recall_refs:
+            n_correct = np.sum(ranks < r + 1)
+            cur_recall = n_correct / n_queries
+            print(col.print_colored("Rk@%d: %d (%.2f)" % (r, n_correct, cur_recall), col.WARNING))
+            if r == 10:
+                print(col.print_colored(">Rk@%d: %d (%.2f)" % (r, n_queries - n_correct, 1 - cur_recall), col.WARNING))
 
         # dump retrieval results to file
         if args.dump_results:
@@ -107,5 +119,5 @@ if __name__ == '__main__':
             res_file %= ret_dir
 
             results = [int(r) for r in ranks]
-            with open(res_file, 'wb') as fp:
+            with open(res_file, 'w') as fp:
                 yaml.dump(results, fp, default_flow_style=False)

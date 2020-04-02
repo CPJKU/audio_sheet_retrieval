@@ -9,6 +9,7 @@ import pickle
 import lasagne
 import argparse
 import yaml
+import sys
 
 from audio_sheet_retrieval.config.settings import EXP_ROOT
 from audio_sheet_retrieval.utils import mutopia_data
@@ -23,6 +24,9 @@ def select_model(model_path):
 
     model_str = os.path.basename(model_path)
     model_str = model_str.split('.py')[0]
+
+    # hack to allow scripts in sub-directories to import modules with no error
+    sys.path.insert(1, os.path.dirname(os.path.abspath(__file__)))
 
     model = importlib.import_module('models.' + model_str)
 

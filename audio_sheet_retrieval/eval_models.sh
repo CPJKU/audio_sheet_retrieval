@@ -8,7 +8,7 @@
 # $2 ... model
 # $3 ... train split
 
-for c in mutopia_no_aug mutopia_audio_aug mutopia_sheet_aug mutopia_full_aug
+for c in mutopia_no_aug mutopia_audio_aug mutopia_sheet_aug mutopia_full_aug_sc
 do
     device="export THEANO_FLAGS=\"device=$1\""
 

@@ -10,7 +10,7 @@ def load_net_params(file_path):
 
     try:
         with open(file_path, 'rb') as fp:
-            params = pickle.load(fp)
+            params = pickle.load(fp, encoding='latin1')
 
     except:
         with open(file_path, 'rb') as fp:

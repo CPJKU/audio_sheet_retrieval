@@ -16,7 +16,7 @@ aug_mapping = OrderedDict()
 aug_mapping["mutopia_no_aug"] = "none"
 aug_mapping["mutopia_sheet_aug"] = "sheet"
 aug_mapping["mutopia_audio_aug"] = "audio"
-aug_mapping["mutopia_full_aug"] = "full"
+aug_mapping["mutopia_full_aug_sc"] = "full"
 
 
 if __name__ == "__main__":
@@ -26,6 +26,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Collect evaluation results.')
     parser.add_argument('--model', help='model parameters for evaluation.', default="models/mutopia_ccal_cont_rsz.py")
     parser.add_argument('--estimate_UV', help='load re-estimated U and V.', action='store_true')
+    parser.add_argument('--test_tempo', help='select different tempo ratio for testing (overwrites exp-config).',
+                        type=float, default=1.0)
     args = parser.parse_args()
 
     # select model
@@ -37,7 +39,9 @@ if __name__ == "__main__":
 
     out_path = os.path.join(os.path.join(EXP_ROOT), model.EXP_NAME)
 
-    eval_template = "eval_%s_%s_%s.yaml"
+    eval_template = "eval_%s_%s_%s_%s.yaml"
+
+    test_tempo = int(args.test_tempo * 1000)
 
     # iterate retrieval directions
     for ret_dir in ["A2S", "S2A"]:
@@ -52,7 +56,7 @@ if __name__ == "__main__":
             # iterate splits
             for split in ["bach_split", "bach_out_split", "all_split"]:
 
-                eval_file = eval_template % (split, aug, ret_dir)
+                eval_file = eval_template % (split, aug, ret_dir, test_tempo)
                 eval_file = os.path.join(out_path, eval_file)
 
                 if os.path.isfile(eval_file):

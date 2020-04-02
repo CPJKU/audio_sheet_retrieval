@@ -56,7 +56,7 @@ if __name__ == '__main__':
     test_aug['synths'] = ['grand-piano-YDP-20160804']
     test_aug['tempo_range'] = [1.0, 1.0]
 
-    piece_name = 'BeethovenLv__O79__LVB_Sonate_79_1'
+    piece_name = 'BachJS__BWVAnh131__air'
     audio_slices, sheet_slices, path_audio = prepare_piece_data_video(DATA_ROOT_MSMD, piece_name, aug_config=test_aug,
                                                                       fps=20, sheet_context=200, spec_context=168)
     output_frames = prepare_frames(audio_slices, sheet_slices)

@@ -7,13 +7,14 @@ import yaml
 import argparse
 import numpy as np
 import seaborn as sns
+import matplotlib.pyplot as plt
 
-from config.settings import EXP_ROOT
-from utils.plotting import BColors
-from run_train import compile_tag, select_model
-from audio_sheet_server import AudioSheetServer
+from audio_sheet_retrieval.config.settings import EXP_ROOT
+from audio_sheet_retrieval.utils.plotting import BColors
+from audio_sheet_retrieval.run_train import compile_tag, select_model
+from audio_sheet_retrieval.audio_sheet_server import AudioSheetServer
 
-from msmd.midi_parser import processor, SAMPLE_RATE, FRAME_SIZE, FPS
+from msmd.midi_parser import extract_spectrogram
 
 
 # set seaborn style and get colormap
@@ -38,37 +39,34 @@ def load_specs(piece_paths, audio_file):
 
     for piece_path in piece_paths:
         audio_path = get_performance_audio_path(piece_path, audio_file)
-        spec = processor.process(audio_path).T
+        spec = extract_spectrogram(audio_path)
         spectrograms.append(spec)
 
     return spectrograms
 
 
-def spec_gen(Spec):
+def spec_gen(spec):
     """ frame from spectrogram generator """
-    for i in xrange(Spec.shape[1]):
-        yield Spec[:, i:i+1]
+    for i in range(spec.shape[1]):
+        yield spec[:, i:i+1]
 
 
-def load_umc_sheets(data_dir="/home/matthias/Data/umc_mozart", require_performance=False
+def load_umc_sheets(data_dir="/home/matthias/Data/umc_mozart", require_performance=False,
                     staff_height=None):
     """ load unwarpped sheets """
     import glob
     import cv2
 
     # initialize omr system
-    from omr.omr_app import OpticalMusicRecognizer
-    from omr.utils.data import prepare_image
-    from lasagne_wrapper.network import SegmentationNetwork
-
-    from omr.models import system_detector, bar_detector
+    from audio_sheet_retrieval.sheet_utils.omr import SegmentationNetwork, OpticalMusicRecognizer, prepare_image
+    from audio_sheet_retrieval.sheet_utils import system_detector, bar_detector
 
     net = system_detector.build_model()
-    system_net = SegmentationNetwork(net, print_architecture=False)
+    system_net = SegmentationNetwork(net)
     system_net.load('sheet_utils/omr_models/system_params.pkl')
 
     net = bar_detector.build_model()
-    bar_net = SegmentationNetwork(net, print_architecture=False)
+    bar_net = SegmentationNetwork(net)
     bar_net.load('sheet_utils/omr_models/bar_params.pkl')
 
     piece_names = []
@@ -201,7 +199,8 @@ if __name__ == '__main__':
     print("Experimental Tag:", tag)
 
     # initialize model
-    a2s_srv = AudioSheetServer()
+    a2s_srv = AudioSheetServer(spec_shape=(1, config['SPEC_BINS'], config['SPEC_CONTEXT']),
+                               sheet_shape=(1, config['STAFF_HEIGHT'], config['SHEET_CONTEXT']))
 
     # load retrieval model
     model, _ = select_model(args.model)
@@ -239,11 +238,11 @@ if __name__ == '__main__':
                 continue
 
             # compute spectrogram
-            spec = processor.process(audio_file).T
+            spec = extract_spectrogram(audio_file)
 
             # detect piece from spectrogram
-            ret_result, ret_votes = a2s_srv.detect_score(spec, top_k=len(te_pieces), n_candidates=args.n_candidates,
-                                                         verbose=False)
+            ret_result, ret_votes = a2s_srv.detect_score(spec, piece_name=None, top_k=len(te_pieces),
+                                                         n_candidates=args.n_candidates, verbose=False)
             if tp in ret_result:
                 rank = ret_result.index(tp) + 1
                 ratio = ret_votes[ret_result.index(tp)]
@@ -263,7 +262,7 @@ if __name__ == '__main__':
         # report results
         ranks = np.asarray(ranks)
         n_queries = len(ranks)
-        for r in xrange(1, n_queries + 1):
+        for r in range(1, n_queries + 1):
             n_correct = np.sum(ranks == r)
             if n_correct > 0:
                 print(col.print_colored("%d of %d retrieved scores ranked at position %d." % (n_correct, n_queries, r),
@@ -278,5 +277,5 @@ if __name__ == '__main__':
             res_file %= (dset, ret_dir)
 
             results = [int(r) for r in ranks]
-            with open(res_file, 'wb') as fp:
+            with open(res_file, 'w') as fp:
                 yaml.dump(results, fp, default_flow_style=False)

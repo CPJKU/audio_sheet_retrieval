@@ -7,11 +7,11 @@ import argparse
 import numpy as np
 import seaborn as sns
 
-from config.settings import EXP_ROOT
-from utils.plotting import BColors
-from run_train import compile_tag, select_model
-from audio_sheet_server import AudioSheetServer
-from umc_a2s_server import load_umc_sheets, load_specs
+from audio_sheet_retrieval.config.settings import EXP_ROOT
+from audio_sheet_retrieval.utils.plotting import BColors
+from audio_sheet_retrieval.run_train import compile_tag, select_model
+from audio_sheet_retrieval.audio_sheet_server import AudioSheetServer
+from audio_sheet_retrieval.umc_a2s_server import load_umc_sheets, load_specs
 
 
 # set seaborn style and get colormap
@@ -39,13 +39,17 @@ if __name__ == '__main__':
     parser.add_argument('--data_dir', help='path to evaluation data.', type=str, default=None)
     args = parser.parse_args()
 
+    with open(args.config, 'rb') as hdl:
+        config = yaml.load(hdl)
+
     # define test pieces
-    te_pieces, piece_paths, unwrapped_sheets = load_umc_sheets(args.data_dir, require_performance=True)
+    te_pieces, piece_paths, unwrapped_sheets = load_umc_sheets(args.data_dir, require_performance=True,
+                                                               staff_height=config['STAFF_HEIGHT'])
     dset = os.path.basename(args.data_dir)
 
     # load corresponding performance spectrograms
     print("Loading spectrograms ...")
-    audio_file = "01_performance" if args.real_perf else "score_ppq"
+    audio_file = "01_performance" if args.real_perf else "score_ppq.flac"
     spectrograms = load_specs(piece_paths, audio_file=audio_file)
 
     # tag parameter file
@@ -53,7 +57,8 @@ if __name__ == '__main__':
     print("Experimental Tag:", tag)
 
     # initialize model
-    a2s_srv = AudioSheetServer()
+    a2s_srv = AudioSheetServer(spec_shape=(1, config['SPEC_BINS'], config['SPEC_CONTEXT']),
+                               sheet_shape=(1, config['STAFF_HEIGHT'], config['SHEET_CONTEXT']))
 
     # load retrieval model
     model, _ = select_model(args.model)
@@ -105,7 +110,7 @@ if __name__ == '__main__':
         # report results
         ranks = np.asarray(ranks)
         n_queries = len(ranks)
-        for r in xrange(1, n_queries + 1):
+        for r in range(1, n_queries + 1):
             n_correct = np.sum(ranks == r)
             if n_correct > 0:
                 print(col.print_colored("%d of %d retrieved scores ranked at position %d." % (n_correct, n_queries, r), col.WARNING))
@@ -119,5 +124,5 @@ if __name__ == '__main__':
             res_file %= (dset, ret_dir)
 
             results = [int(r) for r in ranks]
-            with open(res_file, 'wb') as fp:
+            with open(res_file, 'w') as fp:
                 yaml.dump(results, fp, default_flow_style=False)

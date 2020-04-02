@@ -2,13 +2,13 @@
 
 # example calls:
 # --------------
-# ./eval_piece_retrieval.sh cuda0 models/mutopia_ccal_cont_rsz.py ../../sheet_manager/sheet_manager/splits/all_split.yaml
+# ./eval_piece_retrieval.sh cuda0 models/mutopia_ccal_cont_rsz.py ../../msmd/msmd/splits/all_split.yaml
 
 # $1 ... device
 # $2 ... model
 # $3 ... train split
 
-for c in mutopia_no_aug mutopia_full_aug
+for c in mutopia_no_aug mutopia_full_aug_sc
 do
     device="export THEANO_FLAGS=\"device=$1\""
 

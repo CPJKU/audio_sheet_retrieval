@@ -1,4 +1,3 @@
-
 from __future__ import print_function
 
 import os
@@ -13,16 +12,21 @@ import matplotlib.gridspec as gridspec
 import seaborn as sns
 from scipy.spatial.distance import cdist
 
-from config.settings import EXP_ROOT
-from config.settings import DATA_ROOT_MSMD as ROOT_DIR
-from utils.mutopia_data import load_split
-from utils.data_pools import prepare_piece_data, AudioScoreRetrievalPool
-from utils.plotting import BColors
-from run_train import compile_tag, select_model
-from retrieval_wrapper import RetrievalWrapper
-from utils.data_pools import NO_AUGMENT
+from audio_sheet_retrieval.config.settings import EXP_ROOT
+from audio_sheet_retrieval.config.settings import DATA_ROOT_MSMD as ROOT_DIR
+from audio_sheet_retrieval.utils.mutopia_data import load_split
+from audio_sheet_retrieval.utils.data_pools import prepare_piece_data, AudioScoreRetrievalPool
+from audio_sheet_retrieval.utils.plotting import BColors
+from audio_sheet_retrieval.run_train import compile_tag, select_model
+from audio_sheet_retrieval.retrieval_wrapper import RetrievalWrapper
+from audio_sheet_retrieval.utils.data_pools import NO_AUGMENT
 
-from msmd.midi_parser import processor, SAMPLE_RATE, FRAME_SIZE, FPS
+from msmd.midi_parser import extract_spectrogram
+
+# init signal processing
+SAMPLE_RATE = 22050
+FRAME_SIZE = 2048
+FPS = 20
 
 
 # set seaborn style and get colormap
@@ -35,8 +39,8 @@ col = BColors()
 
 def spec_gen(Spec):
     """ frame from spectrogram generator """
-    for i in xrange(Spec.shape[1]):
-        yield Spec[:, i:i+1]
+    for i in range(Spec.shape[1]):
+        yield Spec[:, i:i + 1]
 
 
 def online_frame_generator():
@@ -83,12 +87,12 @@ class AudioSheetServer(object):
         """
         run sheet retrieval service
             top_k: number of pieces visualized in histogram
-            n_candidates: number of condidates taken into account for each frame
+            n_candidates: number of candidates taken into account for each frame
             running_frames: number of frame history for histogram computation
         """
         print("Running server ...")
 
-        running_spec = np.zeros((self.spec_shape[0], self.spec_shape[1]), dtype=np.float32)
+        running_spec = np.zeros((self.spec_shape[1], self.spec_shape[2]), dtype=np.float32)
 
         if spec is None:
             spectrogram_generator = self._mic_spec_gen()
@@ -118,7 +122,7 @@ class AudioSheetServer(object):
                     # compute spec code
                     spec_code = self.embed_network.compute_view_2(running_spec[np.newaxis, np.newaxis, :, :])
 
-                    # retrive pice ids for current spectrogram
+                    # retrieve piece ids for current spectrogram
                     piece_ids, snippet_ids = self._retrieve_sheet_snippet_ids(spec_code, n_candidates=n_candidates)
 
                     # keep piece ids
@@ -146,7 +150,7 @@ class AudioSheetServer(object):
                     plt.subplot(gs[0])
                     plt.title("Incoming Audio %d" % i_frame, fontsize=20)
                     plt.imshow(running_spec, cmap='viridis', origin="lower")
-                    plt.grid('off')
+                    plt.grid(False)
                     plt.axis('off')
 
                     plt.subplot(gs[1])
@@ -174,7 +178,8 @@ class AudioSheetServer(object):
                             ticks = plt.gca().xaxis.get_major_ticks()
                             ticks[target_idx].label.set_fontweight("bold")
 
-                            plt.bar(x_coords[target_idx], counts[sorted_count_idxs][target_idx], width=0.5, color=colors[2])
+                            plt.bar(x_coords[target_idx], counts[sorted_count_idxs][target_idx], width=0.5,
+                                    color=colors[2])
 
                         plt.xticks(x_coords, labels, rotation=15)
 
@@ -209,17 +214,17 @@ class AudioSheetServer(object):
         except KeyboardInterrupt:
             print("\nStopping server ...")
 
-    def detect_score(self, spectrogram, top_k=1, n_candidates=1, verbose=False):
+    def detect_score(self, spectrogram, piece_name, top_k=1, n_candidates=1, verbose=False, show_dist_matrices=False, pid=None):
         """ detect piece from audio """
 
         n_samples = 100
-        start_indices = np.linspace(start=0, stop=spectrogram.shape[1]-self.spec_shape[1], num=n_samples)
+        start_indices = np.linspace(start=0, stop=spectrogram.shape[1] - self.spec_shape[2], num=n_samples)
         start_indices = start_indices.astype(np.int)
 
         # collect spectrogram excerpts
-        spec_excerpts = np.zeros((len(start_indices), 1, self.spec_shape[0], self.spec_shape[1]), dtype=np.float32)
+        spec_excerpts = np.zeros((len(start_indices), 1, self.spec_shape[1], self.spec_shape[2]), dtype=np.float32)
         for i, idx in enumerate(start_indices):
-            spec_excerpts[i, 0] = spectrogram[:, idx:idx+self.spec_shape[1]]
+            spec_excerpts[i, 0] = spectrogram[:, idx:idx + self.spec_shape[2]]
 
         # compute spec codes
         spec_codes = self.embed_network.compute_view_2(spec_excerpts)
@@ -227,7 +232,7 @@ class AudioSheetServer(object):
         # retrieve piece ids for encoded spectrogram excerpts
         all_piece_ids = np.zeros(0, dtype=np.int)
         for i in range(len(spec_codes)):
-            piece_ids, snippet_ids = self._retrieve_sheet_snippet_ids(spec_codes[i:i+1], n_candidates=n_candidates)
+            piece_ids, snippet_ids = self._retrieve_sheet_snippet_ids(spec_codes[i:i + 1], n_candidates=n_candidates)
 
             # keep piece ids
             all_piece_ids = np.concatenate((all_piece_ids, piece_ids))
@@ -249,6 +254,40 @@ class AudioSheetServer(object):
         ret_votes = [counts[idx] for idx in sorted_count_idxs]
         ret_votes = np.asarray(ret_votes, dtype=np.float) / np.sum(ret_votes)
 
+        if show_dist_matrices:
+
+            # piece ids of the top_k best results
+            top_k_ids = unique[sorted_count_idxs]
+
+            fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+            fig.suptitle('Query: ' + piece_name, fontsize=16)
+            axes = axes.ravel()
+            for piece_id_idx, piece_id in enumerate(top_k_ids[:6]):
+
+                # get entries in sheet_snippet_ids which correspond to piece_id
+                indices = [i for i, x in enumerate(self.sheet_snippet_ids) if x == piece_id]
+
+                # get sheet snippet codes corresponding to piece_id
+                piece_sheet_codes = self.sheet_snippet_codes[indices]
+
+                # compute distances from from query to piece
+                cos_dists = cdist(piece_sheet_codes, spec_codes, metric='cosine')
+                euc_dists = cdist(piece_sheet_codes, spec_codes, metric='euclidean')
+
+                # plot distance matrix
+                axes[piece_id_idx].imshow(euc_dists, cmap='magma', interpolation='nearest', aspect='auto')
+
+                piece_title = self.id_to_piece[piece_id][:min(40, len(self.id_to_piece[piece_id]))]
+                if self.id_to_piece[piece_id] == piece_name:
+                    axes[piece_id_idx].set_title(piece_title, color='green')
+                else:
+                    axes[piece_id_idx].set_title(piece_title)
+            fig.tight_layout()
+            fig.subplots_adjust(top=0.88)
+            plt.show()
+            # fig.savefig("codes_mc/dist_matrix_%02d_pad_trained.png" % pid)
+            # plt.close(fig)
+
         return ret_result, ret_votes
 
     def detect_performance(self, sheet, top_k=1, n_candidates=1, verbose=False):
@@ -257,24 +296,25 @@ class AudioSheetServer(object):
         all_perform_ids = np.zeros(0, dtype=np.int)
 
         n_samples = 100
-        start_indices = np.linspace(start=0, stop=sheet.shape[1]-self.sheet_shape[1], num=n_samples)
+        start_indices = np.linspace(start=0, stop=sheet.shape[1] - self.sheet_shape[2], num=n_samples)
         start_indices = start_indices.astype(np.int)
 
         # slice central part of unrolled sheet
-        r0 = sheet.shape[0] // 2 - self.sheet_shape[0] // 2
-        r1 = r0 + self.sheet_shape[0]
+        r0 = sheet.shape[0] // 2 - self.sheet_shape[1] // 2
+        r1 = r0 + self.sheet_shape[1]
 
         # collect sheet snippets
-        sheet_snippets = np.zeros((len(start_indices), 1, self.sheet_shape[0], self.sheet_shape[1]), dtype=np.float32)
+        sheet_snippets = np.zeros((len(start_indices), 1, self.sheet_shape[1], self.sheet_shape[2]), dtype=np.float32)
         for i, idx in enumerate(start_indices):
-            sheet_snippets[i, 0] = sheet[r0:r1, idx:idx+self.sheet_shape[1]]
+            sheet_snippets[i, 0] = sheet[r0:r1, idx:idx + self.sheet_shape[2]]
 
         # compute sheet codes
         sheet_codes = self.embed_network.compute_view_1(sheet_snippets)
 
         # retrieve piece ids for current spectrogram
         for i in range(len(sheet_codes)):
-            perform_ids, excerpt_ids = self._retrieve_perform_excerpt_ids(sheet_codes[i:i+1], n_candidates=n_candidates)
+            perform_ids, excerpt_ids = self._retrieve_perform_excerpt_ids(sheet_codes[i:i + 1],
+                                                                          n_candidates=n_candidates)
 
             # keep piece ids
             all_perform_ids = np.concatenate((all_perform_ids, perform_ids))
@@ -301,7 +341,8 @@ class AudioSheetServer(object):
     def initialize_embedding_network(self, model, param_file):
         """ load cross modality retrieval model """
         prepare_view_1 = model.prepare
-        self.embed_network = RetrievalWrapper(model, param_file, prepare_view_1=prepare_view_1, prepare_view_2=None)
+        self.embed_network = RetrievalWrapper(model, self.spec_shape, self.sheet_shape,
+                                              param_file, prepare_view_1=prepare_view_1, prepare_view_2=None)
         self.snippet_shape = self.embed_network.shape_view1[1:]
         self.excerpt_shape = self.embed_network.shape_view2[1:]
 
@@ -312,7 +353,7 @@ class AudioSheetServer(object):
         self.id_to_piece = dict()
         self.sheet_snippet_ids = np.zeros(0, dtype=np.int)
         self.sheet_snippet_codes = np.zeros((0, self.embed_network.code_dim), dtype=np.float32)
-        self.sheet_snippets = np.zeros((0, self.snippet_shape[0] // 2, self.snippet_shape[1] // 2), dtype=np.uint8)
+        self.sheet_snippets = np.zeros((0, self.snippet_shape[0], self.snippet_shape[1]), dtype=np.uint8)
 
         # initialize retrieval pool
         for piece_idx, piece in enumerate(pieces):
@@ -320,20 +361,31 @@ class AudioSheetServer(object):
 
             # load piece
             self.id_to_piece[piece_idx] = piece
-            piece_image, piece_specs, piece_o2c_maps = prepare_piece_data(ROOT_DIR, piece, require_audio=False)
-
+            piece_image, piece_specs, piece_o2c_maps, piece_path = prepare_piece_data(ROOT_DIR, piece,
+                                                                                      require_audio=False)
+            # from PIL import Image
+            # im = Image.fromarray(piece_image)
+            # im.save("repetitions/" + piece + "_unrolledscore.png")
             # initialize data pool with piece
-            piece_pool = AudioScoreRetrievalPool([piece_image], [piece_specs], [piece_o2c_maps],
-                                                 data_augmentation=NO_AUGMENT, shuffle=False)
+            piece_pool = AudioScoreRetrievalPool([piece_image], [piece_specs], [piece_o2c_maps], [piece_path],
+                                                 spec_context=self.spec_shape[2], spec_bins=self.spec_shape[1],
+                                                 sheet_context=self.sheet_shape[2], staff_height=self.sheet_shape[1],
+                                                 data_augmentation=NO_AUGMENT, shuffle=False, mode='training', pad=True)
 
             # embed sheet snippets of piece
-            snippets = np.zeros((piece_pool.shape[0], 1, self.sheet_shape[0], self.sheet_shape[1]), dtype=np.uint8)
+            snippets = np.zeros((piece_pool.shape[0], 1, self.sheet_shape[1], self.sheet_shape[2]), dtype=np.uint8)
             for i in range(piece_pool.shape[0]):
 
                 # get image snippet
-                snippet, _ = piece_pool[i:i+1]
+                snippet, spec_snippet = piece_pool[i:i + 1]
                 snippet = snippet[0, 0]
                 snippets[i, 0] = snippet
+
+                if False:
+                    fig, axs = plt.subplots(2, 1)
+                    axs[0].imshow(snippet, cmap='gray')
+                    axs[1].imshow(spec_snippet[0, 0], cmap='viridis', origin='lower', aspect='auto')
+                    plt.show()
 
                 # keep sheet snippets
                 if keep_snippets:
@@ -367,15 +419,18 @@ class AudioSheetServer(object):
 
             # load piece
             self.id_to_perform[piece_idx] = piece
-            piece_image, piece_specs, piece_o2c_maps = prepare_piece_data(ROOT_DIR, piece, aug_config=augment,
-                                                                          require_audio=False)
+            piece_image, piece_specs, piece_o2c_maps, piece_path = prepare_piece_data(ROOT_DIR, piece,
+                                                                                      aug_config=augment,
+                                                                                      require_audio=False)
 
             # initialize data pool with piece
-            piece_pool = AudioScoreRetrievalPool([piece_image], [piece_specs], [piece_o2c_maps],
-                                                 data_augmentation=augment, shuffle=False)
+            piece_pool = AudioScoreRetrievalPool([piece_image], [piece_specs], [piece_o2c_maps], [piece_path],
+                                                 spec_context=self.spec_shape[2], spec_bins=self.spec_shape[1],
+                                                 sheet_context=self.sheet_shape[2], staff_height=self.sheet_shape[1],
+                                                 data_augmentation=NO_AUGMENT, shuffle=False)
 
             # embed audio excerpt of piece
-            excerpts = np.zeros((piece_pool.shape[0], 1, self.spec_shape[0], self.spec_shape[1]), dtype=np.float32)
+            excerpts = np.zeros((piece_pool.shape[0], 1, self.spec_shape[1], self.spec_shape[2]), dtype=np.float32)
             for j in range(piece_pool.shape[0]):
 
                 # get spectrogram excerpt
@@ -417,14 +472,14 @@ class AudioSheetServer(object):
             spectrogram = spectrograms[piece_idx]
 
             # compute spectrogram excerpts
-            indices = np.arange(0, spectrogram.shape[1] - self.spec_shape[1], self.spec_shape[1] // 4)
+            indices = np.arange(0, spectrogram.shape[1] - self.spec_shape[2], self.spec_shape[2] // 4)
 
             # embed audio excerpt of piece
-            excerpts = np.zeros((len(indices), 1, self.spec_shape[0], self.spec_shape[1]), dtype=np.float32)
+            excerpts = np.zeros((len(indices), 1, self.spec_shape[1], self.spec_shape[2]), dtype=np.float32)
             for i, idx in enumerate(indices):
 
                 # get spectrogram snippet
-                excerpts[i, 0] = spectrogram[:, idx:idx + self.spec_shape[1]]
+                excerpts[i, 0] = spectrogram[:, idx:idx + self.spec_shape[2]]
 
                 # TODO: keep excerpt snippets
                 # don't know yet how much sense this makes
@@ -461,18 +516,18 @@ class AudioSheetServer(object):
             piece_image = scores[piece_idx]
 
             # compute image slices
-            indices = np.arange(0, piece_image.shape[1] - self.sheet_shape[1], self.sheet_shape[1] // 4)
+            indices = np.arange(0, piece_image.shape[1] - self.sheet_shape[2], self.sheet_shape[2] // 4)
 
             # compute sheet slices
-            r0 = piece_image.shape[0] // 2 - self.sheet_shape[0] // 2
-            r1 = r0 + self.sheet_shape[0]
+            r0 = piece_image.shape[0] // 2 - self.sheet_shape[1] // 2
+            r1 = r0 + self.sheet_shape[1]
 
             # get snippets
-            snippets = np.zeros((len(indices), 1, self.sheet_shape[0], self.sheet_shape[1]), dtype=np.uint8)
+            snippets = np.zeros((len(indices), 1, self.sheet_shape[1], self.sheet_shape[2]), dtype=np.uint8)
             for i, c in enumerate(indices):
 
                 # get image snippet
-                snippet = piece_image[r0:r1, c:c + self.sheet_shape[1]]
+                snippet = piece_image[r0:r1, c:c + self.sheet_shape[2]]
                 snippets[i, 0] = snippet
 
                 # keep sheet snippets
@@ -589,12 +644,17 @@ if __name__ == '__main__':
     synth = config["TEST_SYNTH"]
 
     # initialize model
-    a2s_srv = AudioSheetServer(spec_shape=(config['SPEC_BINS'], config['SPEC_CONTEXT']),
-                               sheet_shape=(config['STAFF_HEIGHT'], config['SHEET_CONTEXT']))
+    a2s_srv = AudioSheetServer(spec_shape=(1, config['SPEC_BINS'], config['SPEC_CONTEXT']),
+                               sheet_shape=(1, config['STAFF_HEIGHT'], config['SHEET_CONTEXT']))
 
     # load tr/va/te split
     split = load_split(args.train_split)
     te_pieces = split["test"]
+
+    # Removing pieces which are too short for the long context
+    # TODO Solve this!!
+    if 'mutopia_full_aug_lc' in args.config:
+        te_pieces.remove('CzernyC__Op_821__Czerny_Op_821_No_015')
 
     # load retrieval model
     model, _ = select_model(args.model)
@@ -619,7 +679,7 @@ if __name__ == '__main__':
         print(col.print_colored("\nRunning full evaluation:", col.UNDERLINE))
 
         ranks = []
-        for tp in te_pieces:
+        for pid, tp in enumerate(te_pieces):
 
             # compute spectrogram from file
             if args.real_audio:
@@ -629,14 +689,16 @@ if __name__ == '__main__':
                 audio_file %= (tp, tp, synth, tp, synth)
 
             if os.path.exists(audio_file):
-                spec = processor.process(audio_file).T
+                spec = extract_spectrogram(audio_file)
             else:
-                spec_file = os.path.join(ROOT_DIR, "%s/performances/%s_tempo-1000_%s/features/%s_tempo-1000_%s.flac_spec.npy")
+                spec_file = os.path.join(ROOT_DIR,
+                                         "%s/performances/%s_tempo-1000_%s/features/%s_tempo-1000_%s.flac_spec.npy")
                 spec_file %= (tp, tp, synth, tp, synth)
                 spec = np.load(spec_file)
 
             # detect piece from spectrogram
-            ret_result, ret_votes = a2s_srv.detect_score(spec, top_k=len(te_pieces), n_candidates=args.n_candidates, verbose=False)
+            ret_result, ret_votes = a2s_srv.detect_score(spec, tp, top_k=len(te_pieces), n_candidates=args.n_candidates,
+                                                         verbose=False, show_dist_matrices=False, pid=pid)
             if tp in ret_result:
                 rank = ret_result.index(tp) + 1
                 ratio = ret_votes[ret_result.index(tp)]
@@ -650,10 +712,18 @@ if __name__ == '__main__':
         # report results
         ranks = np.asarray(ranks)
         n_queries = len(ranks)
-        for r in xrange(1, n_queries + 1):
+        for r in range(1, n_queries + 1):
             n_correct = np.sum(ranks == r)
             if n_correct > 0:
-                print(col.print_colored("%d of %d retrieved scores ranked at position %d." % (n_correct, n_queries, r), col.WARNING))
+                print(col.print_colored("%d of %d retrieved scores ranked at position %d." % (n_correct, n_queries, r),
+                                        col.WARNING))
+        recall_refs = [1, 5, 10]
+        for r in recall_refs:
+            n_correct = np.sum(ranks < r + 1)
+            cur_recall = n_correct / n_queries
+            print(col.print_colored("Rk@%d: %d (%.2f)" % (r, n_correct, cur_recall), col.WARNING))
+            if r == 10:
+                print(col.print_colored(">Rk@%d: %d (%.2f)" % (r, n_queries - n_correct, 1 - cur_recall), col.WARNING))
 
         # dump retrieval results to file
         if args.dump_results:
@@ -662,25 +732,27 @@ if __name__ == '__main__':
             res_file %= ret_dir
 
             results = [int(r) for r in ranks]
-            with open(res_file, 'wb') as fp:
+            with open(res_file, 'w') as fp:
                 yaml.dump(results, fp, default_flow_style=False)
 
     else:
 
         # compute spectrogram from audio file
-        tp = "BachJS__BWV830__BWV-830-2"
+        # tp = "MussorgskyM__pictures-at-an-exhibition__catacombae"
+        tp = "SidwellA__little-toy-lost__little-toy-lost"
+        # tp = "BachJS__BWV511__BWV-511"
         if args.real_audio:
             audio_file = "/home/matthias/cp/data/sheet_localization/real_music/0_retrieval_samples/%s.flac" % tp
         else:
             audio_file = os.path.join(ROOT_DIR, "%s/performances/%s_tempo-1000_%s/%s_tempo-1000_%s.flac")
             audio_file %= (tp, tp, synth, tp, synth)
 
-        spec = processor.process(audio_file).T
+        spec = extract_spectrogram(audio_file)
 
         print(col.print_colored("\nQuery Audio: %s" % os.path.basename(audio_file), color=col.OKBLUE))
 
         # detect piece from spectrogram
-        a2s_srv.detect_score(spec, top_k=7, n_candidates=args.n_candidates, verbose=True)
+        a2s_srv.detect_score(spec, tp, top_k=6, n_candidates=args.n_candidates, verbose=True, show_dist_matrices=False)
 
         # start service
         a2s_srv.run(spec, top_k=7, n_candidates=args.n_candidates, running_frames=args.running_frames, target_piece=tp)

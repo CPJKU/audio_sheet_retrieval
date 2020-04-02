@@ -6,6 +6,7 @@ from __future__ import print_function
 import os
 import yaml
 import six
+
 try:
     import cPickle as pickle
 except ImportError:
@@ -89,7 +90,7 @@ if __name__ == '__main__':
     print("\n")
     print("Loading model parameters from:", dump_file)
     with open(dump_file, 'rb') as fp:
-         params = pickle.load(fp)
+        params = pickle.load(fp)
     if isinstance(params[0], list):
         # old redundant dump
         for i_layer, layer in enumerate(layers):
@@ -133,6 +134,7 @@ if __name__ == '__main__':
 
         # compute pairwise distances
         from scipy.spatial.distance import cdist
+
         dists = cdist(lv1_cca, lv2_cca, metric="cosine")
 
         plt.figure("Distance Matrix")
@@ -202,6 +204,7 @@ if __name__ == '__main__':
     print("MAP        : %.3f " % map)
 
     from scipy.spatial.distance import cdist
+
     dists = np.diag(cdist(lv1_cca, lv2_cca, metric="cosine"))
     print("Min Dist   : %.5f " % np.min(dists))
     print("Max Dist   : %.5f " % np.max(dists))
@@ -209,7 +212,6 @@ if __name__ == '__main__':
 
     # dump results to yaml file
     if args.dump_results:
-
         # required for yaml export
         map = float(map)
         med_rank_te = float(med_rank_te)

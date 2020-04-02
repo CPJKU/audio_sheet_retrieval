@@ -31,7 +31,7 @@ if __name__ == "__main__":
     # iterate pieces
     for i_piece, piece_dir in enumerate(piece_dirs):
         piece_name = os.path.basename(piece_dir)
-        print "processing piece (%d / %d) %s" % (i_piece + 1, len(piece_dirs), piece_name)
+        print("processing piece (%d / %d) %s" % (i_piece + 1, len(piece_dirs), piece_name))
 
         if "Chopin" not in piece_dir:
             continue
@@ -77,7 +77,7 @@ if __name__ == "__main__":
         perf_path = os.path.join(piece_dir, "audio")
         if os.path.exists(perf_path):
             audio_paths = glob.glob(os.path.join(perf_path, "*"))
-            print "Found %d performances" % len(audio_paths)
+            print("Found %d performances" % len(audio_paths))
             audio_paths = audio_paths[:max_performances]
             for i_audio, audio_path in enumerate(audio_paths):
                 ext = os.path.splitext(audio_path)[1]

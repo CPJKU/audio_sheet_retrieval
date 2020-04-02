@@ -12,7 +12,7 @@ from audio_sheet_retrieval.utils.batch_iterators import batch_compute2
 class RetrievalWrapper(object):
     """ Wrapper for cross modality retrieval networks """
 
-    def __init__(self, model, param_file, prepare_view_1=None, prepare_view_2=None):
+    def __init__(self, model, spec_shape, sheet_shape, param_file, prepare_view_1=None, prepare_view_2=None):
         """ Constructor """
 
         self.prepare_view_1 = prepare_view_1
@@ -21,10 +21,10 @@ class RetrievalWrapper(object):
         self.code_dim = model.DIM_LATENT
 
         print("Building network ...")
-        layers = model.build_model(show_model=False)
+        layers = model.build_model(input_shape_1=sheet_shape, input_shape_2=spec_shape, show_model=False)
 
         print("Loading model parameters from:", param_file)
-        with open(param_file, 'r') as fp:
+        with open(param_file, 'rb') as fp:
             params = pickle.load(fp)
         lasagne.layers.set_all_param_values(layers, params)
 
@@ -75,6 +75,7 @@ class RetrievalWrapper(object):
         return batch_compute2(dummy_in_v1, Z, self.compute_v2_latent,
                               batch_size=min(100, Z.shape[0]),
                               prepare2=self.prepare_view_2)
+
 
 if __name__ == '__main__':
     """ main """

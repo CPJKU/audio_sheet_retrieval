@@ -14,7 +14,6 @@ try:
 except ImportError:
     raise ImportError('Could not import msmd dataset package. Please install!')
 
-
 NO_AUGMENT = dict()
 NO_AUGMENT['system_translation'] = 0
 NO_AUGMENT['sheet_scaling'] = [1.00, 1.00]
@@ -36,7 +35,7 @@ class AudioScoreRetrievalPool(object):
     def __init__(self, images, specs, o2c_maps, audio_pathes,
                  spec_context=None, spec_bins=None, sheet_context=None, staff_height=None,
                  data_augmentation=None, shuffle=True, mode='training', return_piece_names=False,
-                 return_n_onsets=False):
+                 return_n_onsets=False, pad=False):
 
         if spec_context is None:
             spec_context = 42
@@ -68,6 +67,7 @@ class AudioScoreRetrievalPool(object):
 
         self.data_augmentation = data_augmentation
         self.shuffle = shuffle
+        self.pad = pad
 
         self.shape = None
         self.sheet_dim = [self.staff_height, self.sheet_context]
@@ -87,7 +87,6 @@ class AudioScoreRetrievalPool(object):
         """
         for i_sheet in range(len(self.images)):
             for i_spec in range(len(self.specs[i_sheet])):
-
                 onsets = self.o2c_maps[i_sheet][i_spec][:, 0]
                 coords = self.o2c_maps[i_sheet][i_spec][:, 1]
 
@@ -128,7 +127,7 @@ class AudioScoreRetrievalPool(object):
 
                     if self.mode == 'training':
                         # only select samples which lie in the valid borders
-                        if o_start >= 0 and o_stop < spec.shape[1]\
+                        if o_start >= 0 and o_stop < spec.shape[1] \
                                 and c_start >= 0 and c_stop < sheet.shape[1]:
                             cur_entities = np.asarray([i_sheet, i_spec, i_onset])
                             self.train_entities = np.vstack((self.train_entities, cur_entities))
@@ -155,6 +154,16 @@ class AudioScoreRetrievalPool(object):
 
         # get target note coordinate
         target_coord = self.o2c_maps[i_sheet][i_spec][i_onset][1]
+
+        # pad the unwrapped sheet with white space to accommodate snippets whose central note would extrapolate
+        # the borders
+        if self.pad:
+            sheet_pad_beg = max(0, 2 * self.sheet_context - target_coord)
+            sheet_pad_end = max(0, target_coord + 2 * self.sheet_context - sheet.shape[1])
+            sheet_pad_beg_array = np.ones((sheet.shape[0], sheet_pad_beg), dtype=np.float32) * 255
+            sheet_pad_end_array = np.ones((sheet.shape[0], sheet_pad_end), dtype=np.float32) * 255
+            sheet = np.hstack((sheet_pad_beg_array, sheet, sheet_pad_end_array))
+            target_coord += sheet_pad_beg
 
         # get sub-image (with coordinate fixing)
         # this is done since we do not want to do the augmentation
@@ -204,6 +213,15 @@ class AudioScoreRetrievalPool(object):
         if self.data_augmentation['onset_translation']:
             t = self.data_augmentation['onset_translation']
             sel_onset += np.random.randint(low=-t, high=t + 1)
+
+        # pad the spectrogram with blank space to accommodate snippets whose central note would extrapolates the borders
+        # if self.pad:
+        #     spec_pad_beg = max(0, self.spec_context // 2 - sel_onset)
+        #     spec_pad_end = max(0, sel_onset + self.spec_context // 2 - spec.shape[1])
+        #     spec_pad_beg_array = np.zeros((spec.shape[0], spec_pad_beg), dtype=np.float32)
+        #     spec_pad_end_array = np.zeros((spec.shape[0], spec_pad_end), dtype=np.float32)
+        #     spec = np.hstack((spec_pad_beg_array, spec, spec_pad_end_array))
+        #     sel_onset += spec_pad_beg
 
         # compute sliding window coordinates
         start = np.max([sel_onset - self.spec_context // 2, 0])
@@ -479,8 +497,8 @@ def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT,
         tempo, synth = performance_key.split("tempo-")[1].split("_", 1)
         tempo = float(tempo) / 1000
 
-        if synth not in aug_config["synths"]\
-                or tempo < aug_config["tempo_range"][0]\
+        if synth not in aug_config["synths"] \
+                or tempo < aug_config["tempo_range"][0] \
                 or tempo > aug_config["tempo_range"][1]:
             continue
 
@@ -489,7 +507,8 @@ def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT,
         path_audio = performance.audio
 
         # load existing alignment from mung file
-        alignment = piece.load_alignment(performance_key)
+        performance_key_base = piece.name + '_tempo-' + str(int(NO_AUGMENT['tempo_range'][0] * 1000)) + '_' + NO_AUGMENT['synths'][0]
+        alignment = piece.load_alignment(performance_key_base)
 
         try:
             assert len(alignment) > 0
@@ -501,8 +520,8 @@ def prepare_piece_data(collection_dir, piece_name, aug_config=NO_AUGMENT,
 
         if raw_audio:
             # load raw audio
-            SAMPLE_RATE = 22050
-            sig = Signal(performance.audio, num_channels=1, sample_rate=SAMPLE_RATE, dtype=np.float32)
+            sample_rate = 22050
+            sig = Signal(performance.audio, num_channels=1, sample_rate=sample_rate, dtype=np.float32)
             audio_repr.append(np.atleast_2d(sig))
         else:
             # load spectrogram
@@ -561,7 +580,6 @@ def prepare_piece_data_video(collection_dir, piece_name, aug_config=NO_AUGMENT, 
     sheet_repr, audio_repr, onset_to_coord_maps, path_audio = \
         prepare_piece_data(collection_dir, piece_name, aug_config, raw_audio=False,
                            require_audio=True, load_midi_matrix=False, fps=fps)
-
     audio_repr = audio_repr[0]
     onset_to_coord_maps = onset_to_coord_maps[0]
     n_audio_frames = audio_repr.shape[1]
@@ -617,7 +635,6 @@ def load_audio_score_retrieval_test(collection_dir):
     all_piece_audio_pathes = []
 
     for piece_name in piece_names:
-
         piece_image, piece_specs, piece_o2c_maps, piece_audio_path = prepare_piece_data(collection_dir, piece_name)
 
         # keep stuff
@@ -636,7 +653,7 @@ if __name__ == "__main__":
     pool = load_audio_score_retrieval_test(DATA_ROOT_MSMD)
 
     for i in range(10):
-        sheet, spec, piece_name, n_onsets = pool[i:i+1]
+        sheet, spec, piece_name, n_onsets = pool[i:i + 1]
 
         plt.figure()
         plt.clf()
