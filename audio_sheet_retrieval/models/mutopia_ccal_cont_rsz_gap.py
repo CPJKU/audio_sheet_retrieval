@@ -53,7 +53,7 @@ def conv_bn(net_in, num_filters, nonlinearity):
 
 
 def get_build_model(weight_tno, alpha, dim_latent, use_ccal):
-    """ Get model function """
+    """ Get model_name function """
 
     def model(input_shape_1, input_shape_2, show_model):
         """ Compile net architecture """

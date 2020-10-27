@@ -60,7 +60,7 @@ def conv_2d(net_in, num_filters, nonlinearity):
 
 
 def get_build_model(weight_tno, alpha, dim_latent, use_ccal, hop_size=3, window=0):
-    """ Get model function """
+    """ Get model_name function """
 
     def calculate_window_size(hops, win):
         return hops * (win + 1)
