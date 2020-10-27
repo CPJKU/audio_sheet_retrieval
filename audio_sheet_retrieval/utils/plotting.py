@@ -5,6 +5,7 @@ Created on Thu May 14 11:40:43 2015
 @author: matthias
 """
 
+
 class BColors:
     """
     Colored command line output formatting
@@ -17,6 +18,8 @@ class BColors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+    BOXEDBLUE = '\033[44m'
+    BOXEDGREEN = '\033[42m'
 
     def __init__(self):
         """ Constructor """

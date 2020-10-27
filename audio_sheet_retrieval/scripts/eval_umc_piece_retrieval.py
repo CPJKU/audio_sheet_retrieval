@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     # add argument parser
     parser = argparse.ArgumentParser(description='Collect evaluation results.')
-    parser.add_argument('--model', help='model parameters for evaluation.', default="models/mutopia_ccal_cont_rsz.py")
+    parser.add_argument('--model', help='model parameters for evaluation.', default="models/mutopia_ccal_cont_rsz_gap.py")
     parser.add_argument('--estimate_UV', help='load re-estimated U and V.', action='store_true')
     args = parser.parse_args()
 
@@ -33,7 +33,7 @@ if __name__ == "__main__":
         model.EXP_NAME += "_est_UV"
     out_path = os.path.join(os.path.join(EXP_ROOT), model.EXP_NAME)
 
-    eval_template = "umc_retrieval_all_split_mutopia_full_aug_%s_%s.yaml"
+    eval_template = "umc_retrieval_all_split_debug_mutopia_full_aug_sc_%s_%s.yaml"
 
     # iterate composers
     for real in ["", "_real"]:

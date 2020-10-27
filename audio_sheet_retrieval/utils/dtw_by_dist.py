@@ -1,12 +1,12 @@
-
 from numpy import array, zeros, argmin, inf, equal
 from scipy.spatial.distance import cdist
 
 
-def dtw_by_dist(dist):
+def dtw_by_dist(dist, acc_transp=False):
     """
     Computes Dynamic Time Warping (DTW) on distance matrix
     :param dist: distance matrix
+    :param acc_transp = transpose the accumulated matrix according to the "transpose" flag
     Returns the minimum distance, the cost matrix, the accumulated cost matrix, and the wrap path.
     """
 
@@ -25,13 +25,17 @@ def dtw_by_dist(dist):
     C = D1.copy()
     for i in range(r):
         for j in range(c):
-            D1[i, j] += min(D0[i, j], D0[i, j+1], D0[i+1, j])
+            D1[i, j] += min(D0[i, j], D0[i, j + 1], D0[i + 1, j])
     path = _traceback(D0)
 
     if not transposed:
         path = (path[1], path[0])
+    else:
+        if acc_transp:
+            D1 = D1.T
 
-    return D1[-1, -1] / sum(D1.shape), C, D1, path
+    # return D1[-1, -1] / sum(D1.shape), C, D1, path
+    return D1[-1, -1] / len(path[1]), C, D1, path
 
 
 def fastdtw(x, y, dist):
@@ -52,12 +56,12 @@ def fastdtw(x, y, dist):
     D0[0, 1:] = inf
     D0[1:, 0] = inf
     D1 = D0[1:, 1:]
-    D0[1:,1:] = cdist(x,y,dist)
+    D0[1:, 1:] = cdist(x, y, dist)
     C = D1.copy()
     for i in range(r):
         for j in range(c):
-            D1[i, j] += min(D0[i, j], D0[i, j+1], D0[i+1, j])
-    if len(x)==1:
+            D1[i, j] += min(D0[i, j], D0[i, j + 1], D0[i + 1, j])
+    if len(x) == 1:
         path = zeros(len(y)), range(len(y))
     elif len(y) == 1:
         path = range(len(x)), zeros(len(x))
@@ -69,14 +73,14 @@ def fastdtw(x, y, dist):
 def _traceback(D):
     i, j = array(D.shape) - 2
     p, q = [i], [j]
-    while ((i > 0) or (j > 0)):
-        tb = argmin((D[i, j], D[i, j+1], D[i+1, j]))
-        if (tb == 0):
+    while (i > 0) or (j > 0):
+        tb = argmin((D[i, j], D[i, j + 1], D[i + 1, j]))
+        if tb == 0:
             i -= 1
             j -= 1
-        elif (tb == 1):
+        elif tb == 1:
             i -= 1
-        else: # (tb == 2):
+        else:  # (tb == 2):
             j -= 1
         p.insert(0, i)
         q.insert(0, j)

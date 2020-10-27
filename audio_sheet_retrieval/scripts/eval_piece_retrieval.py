@@ -14,13 +14,13 @@ from collections import OrderedDict
 
 
 aug_mapping = OrderedDict()
-aug_mapping["mutopia_no_aug"] = "none"
-aug_mapping["mutopia_full_aug"] = "full"
+# aug_mapping["mutopia_no_aug"] = "none"
+aug_mapping["mutopia_full_aug_sc"] = "full"
 
 split_mapping = OrderedDict()
-split_mapping["bach_split"] = "\\bachset"
-split_mapping["bach_out_split"] = "\\bachoutset"
-split_mapping["all_split"] = "\\allset"
+# split_mapping["bach_split"] = "\\bachset"
+# split_mapping["bach_out_split"] = "\\bachoutset"
+split_mapping["all_split_debug"] = "\\allset"
 
 if __name__ == "__main__":
     """ main """

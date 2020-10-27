@@ -7,7 +7,7 @@ SHEET_WINDOW = 100
 SPEC_WINDOW = 40
 
 
-class ContinousSpec2SheetHashingPool(object):
+class ContinuousSpec2SheetHashingPool(object):
     """
     Data Pool for spectrogram to sheet snippet hashing
     """
@@ -46,7 +46,7 @@ class ContinousSpec2SheetHashingPool(object):
         self.train_entities = np.zeros((0, 2), dtype=np.int)
 
         # iterate sheets
-        for i_sheet in xrange(len(self.sheets)):
+        for i_sheet in range(len(self.sheets)):
             spec = self.spectrograms[i_sheet]
             sheet = self.sheets[i_sheet]
 
@@ -57,7 +57,7 @@ class ContinousSpec2SheetHashingPool(object):
             c1 = sheet.shape[1] - self.sheet_context // 2
 
             # iterate onsets in sheet
-            for i_onset in xrange(0, len(self.onsets[i_sheet])):
+            for i_onset in range(0, len(self.onsets[i_sheet])):
                 onset = self.onsets[i_sheet][i_onset]
                 x_coord = self.coords[i_sheet][i_onset][1]
                 if o0 < onset < o1 and c0 < x_coord < c1:
@@ -118,22 +118,23 @@ def align_baseline(dists):
 
 def align_pydtw(dists):
     """ Use python dtw package for alignment """
-    from dtw_by_dist import dtw_by_dist
+    from audio_sheet_retrieval.utils.dtw_by_dist import dtw_by_dist
 
     min_dist, C, C_acc, path = dtw_by_dist(dists)
 
     # fix path
     audio_path = []
     align_sheet_idxs = []
-    for i in xrange(dists.shape[1]):
+    for i in range(dists.shape[1]):
         sheet_idx = np.nonzero(path[0] == i)[0][0]
         audio_path.append(path[0][sheet_idx])
         align_sheet_idxs.append(path[1][sheet_idx])
 
     align_sheet_idxs = np.array(align_sheet_idxs)
 
+    # import matplotlib.pyplot as plt
     # plt.figure("DTW")
-    # plt.imshow(dists, cmap=cmaps['magma'])
+    # plt.imshow(dists, cmap='magma')
     # plt.plot(audio_path, align_sheet_idxs, 'c-', linewidth=3, alpha=0.5)
     # plt.show(block=True)
 
@@ -159,8 +160,8 @@ def compute_alignment(img_codes, spec_codes, sheet_idxs, spec_idxs, align_by):
     aligned_sheet_coords = sheet_idxs[aligned_sheet_idxs]
 
     # interpolate alignment
-    filterd_idxs = np.diff(np.concatenate((spec_idxs[0:1] - 1, spec_idxs))) > 0
-    f_inter = interp1d(spec_idxs[filterd_idxs], aligned_sheet_coords[filterd_idxs])
+    filtered_idxs = np.diff(np.concatenate((spec_idxs[0:1] - 1, spec_idxs))) > 0
+    f_inter = interp1d(spec_idxs[filtered_idxs], aligned_sheet_coords[filtered_idxs])
     i_inter = np.arange(spec_idxs[0], spec_idxs[-1] + 1, 1)
     a2s_alignment = f_inter(i_inter)
 

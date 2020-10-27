@@ -22,7 +22,6 @@ eval_experiment () {
   fi
 }
 
-
 device="export THEANO_FLAGS='device=${1}'"
 echo $device
 $device
