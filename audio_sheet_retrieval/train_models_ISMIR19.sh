@@ -11,22 +11,22 @@ run_experiment () {
   fi
 }
 
-
 device="export THEANO_FLAGS='device=${1}'"
 echo $device
 $device
 
 # BL1
-run_experiment models/mutopia_ccal_cont_rsz_gap ../../msmd/msmd/splits/all_split.yaml mutopia_full_aug_sc refine
+# run_experiment models/mutopia_ccal_cont_rsz_gap ../../msmd/msmd/splits/all_split.yaml mutopia_full_aug_sc refine
 
 # BL2
-run_experiment models/mutopia_ccal_cont_rsz_dense ../../msmd/msmd/splits/all_split.yaml mutopia_full_aug_sc refine
-run_experiment models/mutopia_ccal_cont_rsz_dense ../../msmd/msmd/splits/all_split.yaml mutopia_full_aug_mc refine
-run_experiment models/mutopia_ccal_cont_rsz_dense ../../msmd/msmd/splits/all_split.yaml mutopia_full_aug_lc refine
+#run_experiment models/mutopia_ccal_cont_rsz_dense ../../msmd/msmd/splits/all_split.yaml mutopia_full_aug_sc refine
+#run_experiment models/mutopia_ccal_cont_rsz_dense ../../msmd/msmd/splits/all_split.yaml mutopia_full_aug_mc refine
+#run_experiment models/mutopia_ccal_cont_rsz_dense ../../msmd/msmd/splits/all_split.yaml mutopia_full_aug_lc refine
 
 # BL2 + Att
-run_experiment models/mutopia_ccal_cont_rsz_dense_att ../../msmd/msmd/splits/all_split.yaml mutopia_full_aug_mc refine
-run_experiment models/mutopia_ccal_cont_rsz_dense_att ../../msmd/msmd/splits/all_split.yaml mutopia_full_aug_lc refine
+run_experiment models/mutopia_ccal_cont_rsz_dense_att ../../msmd/msmd/splits/all_split.yaml mutopia_full_aug_sc refine
+#run_experiment models/mutopia_ccal_cont_rsz_dense_att ../../msmd/msmd/splits/all_split.yaml mutopia_full_aug_mc refine
+#run_experiment models/mutopia_ccal_cont_rsz_dense_att ../../msmd/msmd/splits/all_split.yaml mutopia_full_aug_lc refine
 
 # BL2 + Att - CCA
-run_experiment models/mutopia_lccal_cont_rsz_dense_att.py ../../msmd/msmd/splits/all_split.yaml mutopia_full_aug_lc
+#run_experiment models/mutopia_lccal_cont_rsz_dense_att.py ../../msmd/msmd/splits/all_split.yaml mutopia_full_aug_lc

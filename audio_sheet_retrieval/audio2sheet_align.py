@@ -8,16 +8,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
-from utils.mutopia_data import NO_AUGMENT, load_split
-from retrieval_wrapper import RetrievalWrapper
-from config.settings import EXP_ROOT
-from config.settings import DATA_ROOT_MSMD as ROOT_DIR
-from utils.alignment import compute_alignment, estimate_alignment_error
+from audio_sheet_retrieval.utils.mutopia_data import NO_AUGMENT, load_split
+from audio_sheet_retrieval.retrieval_wrapper import RetrievalWrapper
+from audio_sheet_retrieval.config.settings import EXP_ROOT
+from audio_sheet_retrieval.config.settings import DATA_ROOT_MSMD as ROOT_DIR
+from audio_sheet_retrieval.utils.alignment import compute_alignment, estimate_alignment_error
 
-from run_train import compile_tag
+from audio_sheet_retrieval.run_train import compile_tag, select_model
 
-from msmd.midi_parser import processor
-from utils.data_pools import prepare_piece_data, AudioScoreRetrievalPool
+from msmd.midi_parser import extract_spectrogram
+from audio_sheet_retrieval.utils.data_pools import prepare_piece_data, AudioScoreRetrievalPool
 
 sns.set_style('ticks')
 
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     parser.add_argument('--real_audio', help='load re-estimated U and V.', action='store_true')
     parser.add_argument('--align_by', help='select alignment method (baseline, pydtw).', type=str, default='baseline')
     parser.add_argument('--plots', help='show plots.', action='store_true')
-    parser.add_argument('--dump_alignment', help='show plots.', action='store_true')
+    parser.add_argument('--dump_alignment', help='dump results.', action='store_true')
     parser.add_argument('--train_split', help='path to train split file.', type=str, default=None)
     parser.add_argument('--config', help='path to experiment config file.', type=str, default=None)
     args = parser.parse_args()
@@ -55,8 +55,7 @@ if __name__ == '__main__':
     SPEC_STEP = args.step_spec
     TOL = 25  # tolerance in pixel
 
-    # load retrieval model
-    from run_train import select_model
+    # load retrieval model_name
     model, _ = select_model(args.model)
     if args.estimate_UV:
         model.EXP_NAME += "_est_UV"
@@ -64,31 +63,37 @@ if __name__ == '__main__':
     dump_file = 'params.pkl' if tag is None else 'params_%s.pkl' % tag
     dump_file = os.path.join(out_path, dump_file)
 
+    # get input dimensions
+    sheet_win_shape = [1, config['STAFF_HEIGHT'], config['SHEET_CONTEXT']]
+    spec_win_shape = [1, config['SPEC_BINS'], config['SPEC_CONTEXT']]
+
     # initialize embedding network
     prepare_view_1 = model.prepare
-    embed_network = RetrievalWrapper(model, dump_file, prepare_view_1=prepare_view_1, prepare_view_2=None)
+    embed_network = RetrievalWrapper(model, spec_shape=spec_win_shape, sheet_shape=sheet_win_shape,
+                                     param_file=dump_file, prepare_view_1=prepare_view_1, prepare_view_2=None)
 
-    # get input dims
-    sheet_win_shape = model.INPUT_SHAPE_1[1:]
-    spec_win_shape = model.INPUT_SHAPE_2[1:]
+
 
     # select pieces
     split = load_split(args.train_split)
     te_pieces = split["test"]
-    # pieces = [te_pieces[te_pieces.index("BachJS__BWV790__bwv790")]]
-    pieces = te_pieces
+    pieces = [te_pieces[te_pieces.index("Anonymous__lanative__lanative")]]
+    # pieces = te_pieces
 
     # collect pixel errors for all pieces
     piece_pxl_errors = dict()
 
     for piece in pieces:
 
-        print "\nTarget Piece: %s" % piece
-        piece_image, piece_specs, piece_o2c_maps = prepare_piece_data(ROOT_DIR, piece, aug_config=test_augment,
-                                                                      require_audio=False)
+        print("\nTarget Piece: %s" % piece)
+        piece_image, piece_specs, piece_o2c_maps, piece_path = prepare_piece_data(ROOT_DIR, piece,
+                                                                                  aug_config=test_augment,
+                                                                                  require_audio=False)
 
         # initialize data pool with piece
-        piece_pool = AudioScoreRetrievalPool([piece_image], [piece_specs], [piece_o2c_maps],
+        piece_pool = AudioScoreRetrievalPool([piece_image], [piece_specs], [piece_o2c_maps], [piece_path],
+                                             spec_context=spec_win_shape[2], spec_bins=spec_win_shape[1],
+                                             sheet_context=sheet_win_shape[2], staff_height=sheet_win_shape[1],
                                              data_augmentation=test_augment, shuffle=False)
 
         # compute spectrogram from file
@@ -96,7 +101,7 @@ if __name__ == '__main__':
             audio_file = "/home/matthias/cp/data/sheet_localization/real_music/0_real_audio/%s.flac" % piece
             if not os.path.exists(audio_file):
                 continue
-            spec = processor.process(audio_file).T
+            spec = extract_spectrogram(audio_file)
         # use pre-computed spectrogram
         else:
             spec = piece_pool.specs[0][0]
@@ -111,38 +116,38 @@ if __name__ == '__main__':
 
         # prepare sample points
         n_steps = spec.shape[1] // SPEC_STEP
-        o0 = spec_win_shape[1] // 2
-        o1 = spec.shape[1] - spec_win_shape[1] // 2
+        o0 = spec_win_shape[2] // 2
+        o1 = spec.shape[1] - spec_win_shape[2] // 2
         spec_idxs = np.linspace(o0, o1, n_steps).astype(np.int32)
 
         n_steps = sheet.shape[1] // SHEET_STEP
-        c0 = sheet_win_shape[1] // 2
-        c1 = sheet.shape[1] - sheet_win_shape[1] // 2
+        c0 = sheet_win_shape[2] // 2
+        c1 = sheet.shape[1] - sheet_win_shape[2] // 2
         sheet_idxs = np.linspace(c0, c1, n_steps).astype(np.int32)
 
         # slice sheet image
-        sheet_slices = np.zeros((len(sheet_idxs), 1, sheet_win_shape[0], sheet_win_shape[1]), dtype=np.float32)
-        r0 = sheet.shape[0] // 2 - sheet_win_shape[0] // 2
-        r1 = r0 + sheet_win_shape[0]
+        sheet_slices = np.zeros((len(sheet_idxs), 1, sheet_win_shape[1], sheet_win_shape[2]), dtype=np.float32)
+        r0 = sheet.shape[0] // 2 - sheet_win_shape[1] // 2
+        r1 = r0 + sheet_win_shape[1]
         for j, x_coord in enumerate(sheet_idxs):
             sheet_slice = sheet[r0:r1, x_coord - c0:x_coord + c0]
             sheet_slices[j, 0] = sheet_slice
 
         # slice audio
-        spec_slices = np.zeros((len(spec_idxs), 1, spec_win_shape[0], spec_win_shape[1]), dtype=np.float32)
+        spec_slices = np.zeros((len(spec_idxs), 1, spec_win_shape[1], spec_win_shape[2]), dtype=np.float32)
         for j, onset in enumerate(spec_idxs):
             spec_slice = spec[:, onset - o0:onset + o0]
             spec_slices[j, 0] = spec_slice
 
         # compute sheet snippet codes
         img_codes = np.zeros((sheet_slices.shape[0], model.DIM_LATENT), dtype=np.float32)
-        for j in xrange(sheet_slices.shape[0]):
+        for j in range(sheet_slices.shape[0]):
             imges = sheet_slices[j:j + 1]
             img_codes[j] = embed_network.compute_view_1(imges)
 
         # compute spectrogram snippet codes
         spec_codes = np.zeros((spec_slices.shape[0], model.DIM_LATENT), dtype=np.float32)
-        for j in xrange(spec_slices.shape[0]):
+        for j in range(spec_slices.shape[0]):
             specs = spec_slices[j:j + 1]
             spec_codes[j] = embed_network.compute_view_2(specs)
 
@@ -154,9 +159,9 @@ if __name__ == '__main__':
         abs_pxl_errors = np.abs(pxl_errors)
 
         # report results for piece
-        print "Mean Error:   %.3f" % np.mean(abs_pxl_errors)
-        print "Median Error: %.3f" % np.median(abs_pxl_errors)
-        print "Max Error:    %.3f" % np.max(abs_pxl_errors)
+        print("Mean Error:   %.3f" % np.mean(abs_pxl_errors))
+        print("Median Error: %.3f" % np.median(abs_pxl_errors))
+        print("Max Error:    %.3f" % np.max(abs_pxl_errors))
 
         piece_pxl_errors[piece] = pxl_errors
 
@@ -175,10 +180,7 @@ if __name__ == '__main__':
             plt.title("Distance Matrix and DTW Path", fontsize=22)
 
             # change fontsize of ticks
-            for tick in ax.xaxis.get_major_ticks():
-                tick.label.set_fontsize(16)
-            for tick in ax.yaxis.get_major_ticks():
-                tick.label.set_fontsize(16)
+            ax.tick_params(axis='both', which='major', labelsize=16)
 
             # show alignment
             plt.figure("Interpolation")
@@ -192,7 +194,7 @@ if __name__ == '__main__':
                 plt.plot(o, coords[i], col, alpha=0.7)
 
             plt.legend()
-            plt.grid('on')
+            plt.grid(True)
             plt.xlabel("Spectrogram Frame")
             plt.ylabel("Pixel x-Coordinate")
             plt.title("Offline Alignment")
