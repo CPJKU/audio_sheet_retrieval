@@ -3,9 +3,9 @@
 This repository contains all experimental code for reproducing the results
 reported in our submitted article:
 
->[Exploiting Temporal Dependencies for Music Piece Retrieval].<br>
+>[Exploiting Temporal Dependencies for Cross-Modal Music Piece Retrieval].<br>
 Carvalho, L. and and Widmer G.<br>
-*Submitted to ICASSP-2021*.
+*Submitted to EUSIPCO-2021*.
 
 The paper above is an extension of the work presented in:
 
