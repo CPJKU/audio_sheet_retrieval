@@ -9,4 +9,4 @@ lasagne==0.1
 madmom==0.15.1
 omr==0.0.73
 theano==1.0.1
-PyYAML==3.12
+PyYAML==5.4
