@@ -107,7 +107,7 @@ class AudioScoreRetrievalPool(object):
 
                     coord = self.o2c_maps[i_sheet][i_spec][i_onset, 1]
                     c_start = coord - self.sheet_context // 2
-                    c_stop = o_start + self.sheet_context
+                    c_stop = c_start + self.sheet_context
 
                     if o_start >= 0 and o_stop < spec.shape[1]\
                             and c_start >= 0 and c_stop < sheet.shape[1]:
